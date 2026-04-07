@@ -783,13 +783,12 @@ function isImageFile(icon) {
 }
 
 // 获取图标 HTML
+// 统一默认图标（带灰度滤镜）
+const DEFAULT_ICON_HTML = `<img src="mn-src/momonav-icon.svg" alt="icon" style="filter: grayscale(100%) brightness(0.7)">`;
+
 function getIconHtml(icon) {
     if (!icon) {
-        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            <path d="M2 12h20"/>
-        </svg>`;
+        return DEFAULT_ICON_HTML;
     }
 
     if (isIconUrl(icon)) {
@@ -797,7 +796,7 @@ function getIconHtml(icon) {
             return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.src='mn-src/momonav-icon.svg'; this.style.filter='grayscale(100%) brightness(0.7)'">`;
         }
         if (isImageFile(icon)) {
-            return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.style.display='none'">`;
+            return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.src='mn-src/momonav-icon.svg'; this.style.filter='grayscale(100%) brightness(0.7)'">`;
         }
     }
 

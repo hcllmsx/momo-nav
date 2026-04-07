@@ -664,13 +664,18 @@ body {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    transition: filter 0.3s ease;
+}
+
+/* 鼠标悬停卡片时，去除兜底图标的灰度滤镜，恢复原色 */
+.nav-card:hover .nav-icon img[style*="grayscale"] {
+    filter: none !important;
 }
 
 /* Iconfont Symbol 图标样式 */
 .iconfont-symbol {
     width: 100%;
     height: 100%;
-    fill: currentColor;
     overflow: hidden;
 }
 
