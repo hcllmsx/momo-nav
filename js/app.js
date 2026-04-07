@@ -184,6 +184,15 @@ async function loadData() {
             await loadIconfont(appState.navData.iconfont);
         }
 
+        // 加载 Font Awesome
+        if (appState.navData.fontawesome) {
+            try {
+                await loadFontawesome(appState.navData.fontawesome);
+            } catch (error) {
+                console.warn('Font Awesome 加载失败:', error);
+            }
+        }
+
         renderNav(appState.navData);
     } catch (error) {
         console.error('加载导航数据失败:', error);
@@ -1112,7 +1121,7 @@ function showToast(message, duration = 3000, backgroundColor = 'rgba(51, 51, 51,
 // =========================
 const EDITOR_DRAFT_KEY = 'momoNavEditorDraftV1';
 const EDITOR_DESKTOP_QUERY = '(min-width: 1024px)';
-const OPTIONAL_GROUP_KEYS = ['theme', 'cover', 'background', 'iconfont'];
+const OPTIONAL_GROUP_KEYS = ['theme', 'cover', 'background', 'iconfont', 'fontawesome'];
 
 const DEFAULT_PAGE_CONFIG = {
     captured: false,
@@ -1128,6 +1137,7 @@ const DEFAULT_PAGE_CONFIG = {
 };
 
 appState.loadedIconfontUrl = '';
+appState.loadedFontawesomeUrl = '';
 appState.editor = {
     active: false,
     launcherVisible: false,
@@ -1142,6 +1152,7 @@ appState.editor = {
         cover: false,
         background: false,
         iconfont: false,
+        fontawesome: false,
     },
     launcherEl: null,
     panelEl: null,
@@ -1246,6 +1257,7 @@ function ensureEditorDataShape(sourceData) {
     safeData.cover = safeData.cover && typeof safeData.cover === 'object' ? safeData.cover : {};
     safeData.background = safeData.background && typeof safeData.background === 'object' ? safeData.background : {};
     safeData.iconfont = safeData.iconfont && typeof safeData.iconfont === 'object' ? safeData.iconfont : {};
+    safeData.fontawesome = safeData.fontawesome && typeof safeData.fontawesome === 'object' ? safeData.fontawesome : {};
     safeData.categories = normalizeEditableCategories(safeData.categories);
     return safeData;
 }
@@ -1257,6 +1269,7 @@ function buildToggleStateFromData(data) {
         cover: Boolean(safeData.cover && typeof safeData.cover === 'object'),
         background: Boolean(safeData.background && typeof safeData.background === 'object'),
         iconfont: Boolean(safeData.iconfont && typeof safeData.iconfont === 'object'),
+        fontawesome: Boolean(safeData.fontawesome && typeof safeData.fontawesome === 'object'),
     };
 }
 
@@ -1464,6 +1477,18 @@ function sanitizeIconfontFromEditor(iconfontData) {
     return { type, url };
 }
 
+function sanitizeFontawesomeFromEditor(fontawesomeData) {
+    if (!fontawesomeData || typeof fontawesomeData !== 'object') return null;
+
+    const url = trimToString(fontawesomeData.url);
+    if (!url) return null;
+
+    const rawType = trimToString(fontawesomeData.type).toLowerCase();
+    const type = rawType === 'online' ? 'online' : 'local';
+
+    return { type, url };
+}
+
 function sanitizeLogoFromEditor(logoData) {
     if (!logoData || typeof logoData !== 'object') return null;
     const output = {};
@@ -1577,6 +1602,11 @@ function buildConfigFromEditorState() {
         if (iconfont) output.iconfont = iconfont;
     }
 
+    if (toggles.fontawesome) {
+        const fontawesome = sanitizeFontawesomeFromEditor(editorData.fontawesome);
+        if (fontawesome) output.fontawesome = fontawesome;
+    }
+
     output.categories = sanitizeCategoriesFromEditor(editorData.categories);
     return output;
 }
@@ -1622,6 +1652,16 @@ async function refreshUiFromNavData() {
         }
     } else {
         appState.hasIconfontConfig = false;
+    }
+
+    if (appState.navData.fontawesome) {
+        try {
+            await loadFontawesome(appState.navData.fontawesome);
+        } catch (error) {
+            console.warn('Font Awesome 预览加载失败:', error);
+        }
+    } else {
+        unloadFontawesome();
     }
 
     const searchInput = document.getElementById('searchInput');
@@ -1738,12 +1778,32 @@ function initEditorUi() {
                     </h3>
                     <div class="editor-group-fields" data-editor-group-fields="iconfont">
                         <label>type
-                            <select data-editor-path="iconfont.type" id="editorFieldIconfontType" title="图标加载方式">
+                            <select data-editor-path="iconfont.type" id="editorFieldIconfontType" title="图标加载方式" data-dynamic-placeholder-target="editorFieldIconfontUrl" data-placeholder-local="文件夹名 font_xxxxx" data-placeholder-online="//at.alicdn.com/t/.......js">
                                 <option value="local">local (本地加载)</option>
                                 <option value="online">online (在线加载)</option>
                             </select>
                         </label>
-                        <label>url<input type="text" data-editor-path="iconfont.url" id="editorFieldIconfontUrl" placeholder="Iconfont库的URL或本地路径"></label>
+                        <label>url<input type="text" data-editor-path="iconfont.url" id="editorFieldIconfontUrl" placeholder="文件夹名 font_xxxxx"></label>
+                    </div>
+                </section>
+
+                <section class="editor-section editor-optional-section" data-editor-group="fontawesome">
+                    <h3>
+                        <label class="editor-group-toggle">
+                            <input type="checkbox" data-editor-toggle="fontawesome" id="editorToggleFontawesome">
+                            <span>fontawesome (Font Awesome)</span>
+                        </label>
+                    </h3>
+                    <div class="editor-group-fields" data-editor-group-fields="fontawesome">
+                        <label>type
+                            <select data-editor-path="fontawesome.type" id="editorFieldFontawesomeType" title="图标加载方式" data-dynamic-placeholder-target="editorFieldFontawesomeUrl" data-placeholder-local="文件夹 fontawesome" data-placeholder-online="CDN地址 https://.......css">
+                                <option value="local">local (本地加载)</option>
+                                <option value="online">online (在线加载)</option>
+                            </select>
+                        </label>
+                        <label>url
+                            <input type="text" data-editor-path="fontawesome.url" id="editorFieldFontawesomeUrl" placeholder="文件夹 fontawesome">
+                        </label>
                     </div>
                 </section>
 
@@ -1767,6 +1827,9 @@ function initEditorUi() {
         panel.addEventListener('click', handleEditorPanelClick);
         panel.addEventListener('input', handleEditorPanelInputChange);
         panel.addEventListener('change', handleEditorPanelInputChange);
+
+        // 初始化动态 placeholder
+        initDynamicPlaceholders();
     }
 
     if (!appState.editor.modalLayerEl) {
@@ -1802,10 +1865,7 @@ function initEditorUi() {
                 closeEditorModal(null);
                 return;
             }
-
-            if (event.target === modalLayer) {
-                closeEditorModal(null);
-            }
+            // 不响应点击遮罩层关闭，避免误触导致弹窗意外关闭
         });
 
         const modalForm = modalLayer.querySelector('#editorModalForm');
@@ -2018,6 +2078,44 @@ function syncEditorFormFromState() {
     });
 
     appState.editor.syncFormLocked = false;
+
+    // 同步后更新动态 placeholder
+    initDynamicPlaceholders();
+}
+
+// 动态 placeholder 初始化
+function initDynamicPlaceholders() {
+    const panel = appState.editor.panelEl;
+    if (!panel) return;
+
+    // 查找所有带动态 placeholder 的 select
+    const selects = panel.querySelectorAll('select[data-dynamic-placeholder-target]');
+    selects.forEach(select => {
+        updateDynamicPlaceholderForSelect(select);
+        // 监听变化事件（避免重复绑定）
+        select.removeEventListener('change', handleDynamicPlaceholderChange);
+        select.addEventListener('change', handleDynamicPlaceholderChange);
+    });
+}
+
+// 动态 placeholder 变化事件处理函数
+function handleDynamicPlaceholderChange(event) {
+    updateDynamicPlaceholderForSelect(event.target);
+}
+
+// 更新单个 select 的目标 input 的 placeholder
+function updateDynamicPlaceholderForSelect(select) {
+    const targetId = select.dataset.dynamicPlaceholderTarget;
+    if (!targetId) return;
+
+    const targetInput = document.getElementById(targetId);
+    if (!targetInput) return;
+
+    const selectedValue = select.value;
+    const localPlaceholder = select.dataset.placeholderLocal || '';
+    const onlinePlaceholder = select.dataset.placeholderOnline || '';
+
+    targetInput.placeholder = selectedValue === 'online' ? onlinePlaceholder : localPlaceholder;
 }
 
 function updateOptionalGroupReadonlyState(groupKey) {
@@ -2233,7 +2331,7 @@ async function promptLinkData(defaultItem = {}) {
             },
             {
                 name: 'title',
-                label: '标题 / 描述',
+                label: '描述',
                 type: 'textarea',
                 rows: 3,
                 placeholder: '鼠标悬停时显示的描述',
@@ -2680,6 +2778,62 @@ function loadIconfont(iconfontConfig) {
             document.head.appendChild(script);
         }
     });
+}
+
+// 加载 Font Awesome
+function loadFontawesome(fontawesomeConfig) {
+    return new Promise((resolve, reject) => {
+        const rawType = trimToString(fontawesomeConfig.type).toLowerCase();
+        const iconType = rawType === 'online' ? 'online' : 'local';
+        let url = trimToString(fontawesomeConfig.url);
+
+        if (!url) {
+            reject(new Error('Font Awesome URL 为空'));
+            return;
+        }
+
+        // 本地模式：自动补全 all.min.css 路径
+        if (iconType === 'local') {
+            url = url.replace(/\/$/, '');
+            if (!/\.css$/i.test(url)) {
+                url = `${url}/all.min.css`;
+            }
+        }
+
+        // 检查是否已加载相同 URL
+        if (appState.loadedFontawesomeUrl === url) {
+            resolve();
+            return;
+        }
+
+        // 移除旧的 Font Awesome 链接
+        unloadFontawesome();
+
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.dataset.fontawesomeStylesheet = 'true';
+        link.onload = () => {
+            appState.loadedFontawesomeUrl = url;
+            console.log('Font Awesome 加载成功:', url);
+            resolve();
+        };
+        link.onerror = () => {
+            console.error('Font Awesome 加载失败:', url);
+            reject(new Error('Font Awesome 加载失败'));
+        };
+
+        document.head.appendChild(link);
+    });
+}
+
+// 卸载 Font Awesome
+function unloadFontawesome() {
+    const existingLink = document.querySelector('link[data-fontawesome-stylesheet="true"]');
+    if (existingLink) {
+        existingLink.remove();
+    }
+    appState.loadedFontawesomeUrl = '';
 }
 
 // 重新定义渲染：编辑模式下支持可视化增删改与拖拽

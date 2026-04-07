@@ -187,7 +187,7 @@ body {
     position: sticky;
     top: 20px;
     flex-shrink: 0;
-    width: 150px;
+    width: 200px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     padding: 12px 10px;
@@ -686,6 +686,13 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: calc(100% - 16px);
+    transition: white-space 0.2s ease, overflow 0.2s ease, text-overflow 0.2s ease;
+}
+
+.nav-card:hover .nav-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 /* 无结果提示 */
@@ -770,7 +777,7 @@ body.desktop-sidebar-fixed .category-sidebar {
     position: fixed;
     top: var(--desktop-sidebar-top, 20px);
     left: var(--desktop-sidebar-left, 0px);
-    width: var(--desktop-sidebar-width, 150px);
+    width: var(--desktop-sidebar-width, 200px);
 }
 @media (max-width: 768px) {
     :root {
