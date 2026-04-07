@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" id="metaDescription" content="">
+    <meta name="keywords" id="metaKeywords" content="">
+    <title id="pageTitle">默默导航 - MomoNav</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❤️</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+    <script id="iconfontLoader"></script>
+</head>
+<!-- Iconfont 将在这里动态加载 -->
+<body>
+    <!-- 全屏背景（视频或图片） -->
+    <div class="banner-bg" id="bannerBg"></div>
+
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-corner" id="siteLogo">
+            <span id="logoIcon">❤️</span>
+            <span id="logoText">默默导航</span>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-wrapper">
+            <div class="search-tabs">
+                <button class="tab-btn" data-engine="local" data-url="local">🔍 本地</button>
+                <button class="tab-btn" data-engine="bing" data-url="https://www.bing.com/search?q=">Bing</button>
+                <button class="tab-btn" data-engine="metaso" data-url="https://metaso.cn/?q=">秘塔</button>
+                <button class="tab-btn" data-engine="google" data-url="https://www.google.com/search?q=">Google</button>
+                <button class="tab-btn" data-engine="duckduckgo" data-url="https://duckduckgo.com/?q=">DuckDuckGo</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入关键词..." autocomplete="off" aria-label="搜索关键词">
+                <button id="searchClearBtn" class="search-clear-btn" type="button" aria-label="清空搜索">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <button id="searchBtn" type="button" aria-label="搜索">
+                    <img src="mn-src/sousuo.svg" alt="" aria-hidden="true">
+                </button>
+            </div>
+            <div id="searchHistory" class="search-history" aria-live="polite"></div>
+        </div>
+
+        <!-- 主布局：侧边栏 + 内容 -->
+        <div class="main-layout">
+            <!-- 分类侧边栏 -->
+            <aside id="categorySidebar" class="category-sidebar">
+                <!-- 动态生成分类目录 -->
+            </aside>
+
+            <!-- 导航内容 -->
+            <main id="navContent" class="nav-content">
+                <!-- 动态生成内容 -->
+            </main>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© <span id="footerYear"></span> <span id="footerSiteName">默默导航</span> · <a href="https://github.com/hcllmsx/momo-nav" target="_blank">MOMO-NAV</a><span class="footer-dot"> · </span><br class="footer-loadtime-break"><span class="footer-loadtime">加载用时：<span id="loadTime"></span> ms</span></p>
+    </footer>
+
+    <script>
+        window.addEventListener('load', function () {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    let loadTime = NaN;
+                    const navEntry = performance.getEntriesByType('navigation')[0];
+                    if (navEntry && navEntry.loadEventEnd > 0 && navEntry.startTime > 0) {
+                        loadTime = navEntry.loadEventEnd - navEntry.startTime;
+                    } else if (performance.timing && performance.timing.loadEventEnd > 0 && performance.timing.navigationStart > 0) {
+                        loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                    }
+                    if (!Number.isFinite(loadTime) || loadTime < 0) {
+                        loadTime = 0;
+                    }
+                    document.getElementById('loadTime').innerText = Math.round(loadTime);
+                });
+            });
+        });
+    </script>
+    <script src="js/app.js"></script>
+
+    <!--
+        +++++++++++++++++++++++++++++++++++++++++++
+        作者：火车啦啦
+        Github：https://github.com/hcllmsx/momo-nav
+        日期：2026-04-01
+        版权所有，请勿删除。
+        你可以在这里增加你的信息，而不是替换我的信息。
+        +++++++++++++++++++++++++++++++++++++++++++
+    -->
+</body>
+</html>
+
+
