@@ -1934,6 +1934,7 @@ function handleEditorShortcut(event) {
     }
 
     updateEditorLauncherVisibility();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function updateEditorLauncherLabel() {
