@@ -1260,6 +1260,30 @@ function isColorFieldToggleEnabled(colorToggles, path) {
     return Boolean(colorToggles && colorToggles[path]);
 }
 
+function normalizeColorInputValue(value, fallback = '#000000') {
+    const raw = trimToString(value);
+    const safeFallback = /^#[0-9a-f]{6}$/i.test(trimToString(fallback)) ? trimToString(fallback) : '#000000';
+    if (!raw) return safeFallback;
+
+    if (/^#[0-9a-f]{6}$/i.test(raw)) {
+        return raw;
+    }
+
+    if (/^#[0-9a-f]{3}$/i.test(raw)) {
+        return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`.toLowerCase();
+    }
+
+    const rgb = parseColorToRgb(raw);
+    if (!rgb) return safeFallback;
+
+    const toHex = num => {
+        const clamped = Math.max(0, Math.min(255, Number(num) || 0));
+        return clamped.toString(16).padStart(2, '0');
+    };
+
+    return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`;
+}
+
 function parseOptionalNumber(value) {
     if (value === undefined || value === null) return null;
     const raw = String(value).trim();
@@ -2184,6 +2208,11 @@ function syncEditorFormFromState() {
 
         if (field.type === 'number') {
             field.value = value === undefined || value === null ? '' : String(value);
+            return;
+        }
+
+        if (field.type === 'color') {
+            field.value = normalizeColorInputValue(value, field.value || '#000000');
             return;
         }
 
