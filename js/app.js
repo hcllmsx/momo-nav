@@ -426,15 +426,10 @@ async function applySiteConfig(data) {
         }
     }
 
-    // 2. 设置背景（纹理 + 颜色）
+    // 2. 设置背景纹理（底色统一由 theme.bgColor 控制）
     if (data.background) {
         const bg = data.background;
-        
-        // 设置背景色
-        if (bg.color) {
-            document.body.style.backgroundColor = bg.color;
-        }
-        
+
         // 3. 设置纹理图片（铺满页面底层）
         if (bg.texture) {
             const applyTextureBg = async () => {
@@ -1121,6 +1116,23 @@ function showToast(message, duration = 3000, backgroundColor = 'rgba(51, 51, 51,
 const EDITOR_DRAFT_KEY = 'momoNavEditorDraftV1';
 const EDITOR_DESKTOP_QUERY = '(min-width: 1024px)';
 const OPTIONAL_GROUP_KEYS = ['theme', 'cover', 'background', 'iconfont', 'fontawesome'];
+const COLOR_FIELD_PATHS = [
+    'theme.primaryColor',
+    'theme.primaryHover',
+    'theme.bgColor',
+    'theme.cardBg',
+    'theme.textColor',
+    'theme.textMuted',
+    'theme.borderColor',
+    'background.textureColor',
+];
+
+function buildDefaultColorToggleState(defaultValue = false) {
+    return COLOR_FIELD_PATHS.reduce((state, path) => {
+        state[path] = defaultValue;
+        return state;
+    }, {});
+}
 
 const DEFAULT_PAGE_CONFIG = {
     captured: false,
@@ -1153,6 +1165,7 @@ appState.editor = {
         iconfont: false,
         fontawesome: false,
     },
+    colorToggles: buildDefaultColorToggleState(false),
     launcherEl: null,
     panelEl: null,
     drag: null,
@@ -1215,6 +1228,36 @@ function setValueByPath(obj, path, value) {
         }
         current = current[segment];
     });
+}
+
+function buildColorToggleStateFromData(data) {
+    const safeData = data && typeof data === 'object' ? data : {};
+    const state = buildDefaultColorToggleState(false);
+
+    COLOR_FIELD_PATHS.forEach(path => {
+        if (path === 'theme.primaryColor') {
+            const primaryColor = sanitizeThemeColor(
+                getValueByPath(safeData, 'theme.primaryColor') || getValueByPath(safeData, 'theme.primary')
+            );
+            state[path] = Boolean(primaryColor);
+            return;
+        }
+
+        const rawValue = getValueByPath(safeData, path);
+
+        if (path.startsWith('theme.')) {
+            state[path] = Boolean(sanitizeThemeColor(rawValue));
+            return;
+        }
+
+        state[path] = Boolean(trimToString(rawValue));
+    });
+
+    return state;
+}
+
+function isColorFieldToggleEnabled(colorToggles, path) {
+    return Boolean(colorToggles && colorToggles[path]);
 }
 
 function parseOptionalNumber(value) {
@@ -1362,7 +1405,11 @@ function readEditorDraftFromStorage() {
         if (!parsed.data || typeof parsed.data !== 'object') return null;
 
         const safeToggles = buildToggleStateFromData(parsed.data);
+        const safeColorToggles = buildColorToggleStateFromData(parsed.data);
         const storedToggles = parsed.toggles && typeof parsed.toggles === 'object' ? parsed.toggles : {};
+        const storedColorToggles = parsed.colorToggles && typeof parsed.colorToggles === 'object'
+            ? parsed.colorToggles
+            : {};
 
         OPTIONAL_GROUP_KEYS.forEach(key => {
             if (typeof storedToggles[key] === 'boolean') {
@@ -1370,9 +1417,16 @@ function readEditorDraftFromStorage() {
             }
         });
 
+        COLOR_FIELD_PATHS.forEach(path => {
+            if (typeof storedColorToggles[path] === 'boolean') {
+                safeColorToggles[path] = storedColorToggles[path];
+            }
+        });
+
         return {
             data: ensureEditorDataShape(parsed.data),
             toggles: safeToggles,
+            colorToggles: safeColorToggles,
         };
     } catch (error) {
         console.warn('读取编辑草稿失败，将回退到文件配置:', error);
@@ -1388,6 +1442,7 @@ function persistEditorDraftToStorage() {
             updatedAt: new Date().toISOString(),
             data: appState.editor.data,
             toggles: appState.editor.toggles,
+            colorToggles: appState.editor.colorToggles,
         }));
     } catch (error) {
         console.warn('保存编辑草稿失败:', error);
@@ -1400,36 +1455,44 @@ function applyEditorDraftState(baseData) {
     if (draft) {
         appState.editor.data = draft.data;
         appState.editor.toggles = draft.toggles;
+        appState.editor.colorToggles = draft.colorToggles || buildColorToggleStateFromData(draft.data);
         console.log('检测到本地编辑草稿，已优先加载 localStorage 配置。');
         return true;
     }
 
     appState.editor.data = ensureEditorDataShape(baseData);
     appState.editor.toggles = buildToggleStateFromData(baseData);
+    appState.editor.colorToggles = buildColorToggleStateFromData(baseData);
     return false;
 }
 
-function sanitizeThemeFromEditor(themeData) {
+function sanitizeThemeFromEditor(themeData, colorToggles = {}) {
     if (!themeData || typeof themeData !== 'object') return null;
     const output = {};
 
     const primaryColor = sanitizeThemeColor(themeData.primaryColor || themeData.primary);
-    if (primaryColor) output.primaryColor = primaryColor;
+    if (primaryColor && isColorFieldToggleEnabled(colorToggles, 'theme.primaryColor')) {
+        output.primaryColor = primaryColor;
+    }
 
     const primaryHover = sanitizeThemeColor(themeData.primaryHover);
-    if (primaryHover) output.primaryHover = primaryHover;
+    if (primaryHover && isColorFieldToggleEnabled(colorToggles, 'theme.primaryHover')) {
+        output.primaryHover = primaryHover;
+    }
 
     const map = [
-        'bgColor',
-        'cardBg',
-        'textColor',
-        'textMuted',
-        'borderColor',
+        ['bgColor', 'theme.bgColor'],
+        ['cardBg', 'theme.cardBg'],
+        ['textColor', 'theme.textColor'],
+        ['textMuted', 'theme.textMuted'],
+        ['borderColor', 'theme.borderColor'],
     ];
 
-    map.forEach(field => {
+    map.forEach(([field, path]) => {
         const colorValue = sanitizeThemeColor(themeData[field]);
-        if (colorValue) output[field] = colorValue;
+        if (colorValue && isColorFieldToggleEnabled(colorToggles, path)) {
+            output[field] = colorValue;
+        }
     });
 
     return Object.keys(output).length > 0 ? output : null;
@@ -1447,14 +1510,17 @@ function sanitizeCoverFromEditor(coverData) {
     return Object.keys(output).length > 0 ? output : null;
 }
 
-function sanitizeBackgroundFromEditor(backgroundData) {
+function sanitizeBackgroundFromEditor(backgroundData, colorToggles = {}) {
     if (!backgroundData || typeof backgroundData !== 'object') return null;
     const output = {};
 
-    ['texture', 'color', 'textureColor'].forEach(field => {
-        const value = trimToString(backgroundData[field]);
-        if (value) output[field] = value;
-    });
+    const texture = trimToString(backgroundData.texture);
+    if (texture) output.texture = texture;
+
+    const textureColor = trimToString(backgroundData.textureColor);
+    if (textureColor && isColorFieldToggleEnabled(colorToggles, 'background.textureColor')) {
+        output.textureColor = textureColor;
+    }
 
     const opacity = parseOptionalNumber(backgroundData.opacity);
     if (opacity !== null) {
@@ -1561,6 +1627,7 @@ function sanitizeCategoriesFromEditor(categories) {
 function buildConfigFromEditorState() {
     const editorData = appState.editor.data || {};
     const toggles = appState.editor.toggles || {};
+    const colorToggles = appState.editor.colorToggles || buildDefaultColorToggleState(false);
     const output = {};
 
     const siteName = trimToString(editorData.siteName);
@@ -1582,7 +1649,7 @@ function buildConfigFromEditorState() {
     if (logo) output.logo = logo;
 
     if (toggles.theme) {
-        const theme = sanitizeThemeFromEditor(editorData.theme);
+        const theme = sanitizeThemeFromEditor(editorData.theme, colorToggles);
         if (theme) output.theme = theme;
     }
 
@@ -1592,7 +1659,7 @@ function buildConfigFromEditorState() {
     }
 
     if (toggles.background) {
-        const background = sanitizeBackgroundFromEditor(editorData.background);
+        const background = sanitizeBackgroundFromEditor(editorData.background, colorToggles);
         if (background) output.background = background;
     }
 
@@ -1729,13 +1796,41 @@ function initEditorUi() {
                         </label>
                     </h3>
                     <div class="editor-group-fields" data-editor-group-fields="theme">
-                        <label>primaryColor<input type="color" data-editor-path="theme.primaryColor" id="editorFieldThemePrimaryColor" title="网站主色调"></label>
-                        <label>primaryHover<input type="color" data-editor-path="theme.primaryHover" id="editorFieldThemePrimaryHover" title="主号悬停/焦点时的颜色"></label>
-                        <label>bgColor<input type="color" data-editor-path="theme.bgColor" id="editorFieldThemeBgColor" title="页面背景色"></label>
-                        <label>cardBg<input type="color" data-editor-path="theme.cardBg" id="editorFieldThemeCardBg" title="卡片背景色"></label>
-                        <label>textColor<input type="color" data-editor-path="theme.textColor" id="editorFieldThemeTextColor" title="主文字颜色"></label>
-                        <label>textMuted<input type="color" data-editor-path="theme.textMuted" id="editorFieldThemeTextMuted" title="次要/辅助文字颜色"></label>
-                        <label>borderColor<input type="color" data-editor-path="theme.borderColor" id="editorFieldThemeBorderColor" title="边框和分割线颜色"></label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.primaryColor" id="editorToggleThemePrimaryColor">
+                            <span>primaryColor</span>
+                            <input type="color" data-editor-path="theme.primaryColor" id="editorFieldThemePrimaryColor" title="网站主色调">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.primaryHover" id="editorToggleThemePrimaryHover">
+                            <span>primaryHover</span>
+                            <input type="color" data-editor-path="theme.primaryHover" id="editorFieldThemePrimaryHover" title="主号悬停/焦点时的颜色">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.bgColor" id="editorToggleThemeBgColor">
+                            <span>bgColor</span>
+                            <input type="color" data-editor-path="theme.bgColor" id="editorFieldThemeBgColor" title="页面背景色">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.cardBg" id="editorToggleThemeCardBg">
+                            <span>cardBg</span>
+                            <input type="color" data-editor-path="theme.cardBg" id="editorFieldThemeCardBg" title="卡片背景色">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.textColor" id="editorToggleThemeTextColor">
+                            <span>textColor</span>
+                            <input type="color" data-editor-path="theme.textColor" id="editorFieldThemeTextColor" title="主文字颜色">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.textMuted" id="editorToggleThemeTextMuted">
+                            <span>textMuted</span>
+                            <input type="color" data-editor-path="theme.textMuted" id="editorFieldThemeTextMuted" title="次要/辅助文字颜色">
+                        </label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="theme.borderColor" id="editorToggleThemeBorderColor">
+                            <span>borderColor</span>
+                            <input type="color" data-editor-path="theme.borderColor" id="editorFieldThemeBorderColor" title="边框和分割线颜色">
+                        </label>
                     </div>
                 </section>
 
@@ -1762,9 +1857,12 @@ function initEditorUi() {
                     </h3>
                     <div class="editor-group-fields" data-editor-group-fields="background">
                         <label>texture<input type="text" data-editor-path="background.texture" id="editorFieldBgTexture" placeholder="背景纹理图片的URL"></label>
-                        <label>color<input type="color" data-editor-path="background.color" id="editorFieldBgColor" title="背景颜色"></label>
                         <label>opacity<input type="number" step="0.1" min="0" max="1" data-editor-path="background.opacity" id="editorFieldBgOpacity" placeholder="0.5" title="背景透明度 (0-1)"></label>
-                        <label>textureColor<input type="color" data-editor-path="background.textureColor" id="editorFieldBgTextureColor" title="纹理的色调"></label>
+                        <label class="editor-color-field">
+                            <input type="checkbox" data-editor-color-toggle="background.textureColor" id="editorToggleBgTextureColor">
+                            <span>textureColor</span>
+                            <input type="color" data-editor-path="background.textureColor" id="editorFieldBgTextureColor" title="纹理的色调">
+                        </label>
                     </div>
                 </section>
 
@@ -2031,6 +2129,28 @@ function handleEditorPanelInputChange(event) {
     const target = event.target;
     if (!target || appState.editor.syncFormLocked || !appState.editor.data) return;
 
+    if (target.dataset.editorColorToggle) {
+        const colorPath = target.dataset.editorColorToggle;
+        if (!Object.prototype.hasOwnProperty.call(appState.editor.colorToggles, colorPath)) {
+            appState.editor.colorToggles[colorPath] = false;
+        }
+        appState.editor.colorToggles[colorPath] = target.checked;
+
+        if (target.checked) {
+            const currentValue = trimToString(getValueByPath(appState.editor.data, colorPath));
+            if (!currentValue && appState.editor.panelEl) {
+                const colorInput = appState.editor.panelEl.querySelector(`[data-editor-path="${colorPath}"]`);
+                if (colorInput && colorInput.type === 'color' && colorInput.value) {
+                    setValueByPath(appState.editor.data, colorPath, colorInput.value);
+                }
+            }
+        }
+
+        updateColorFieldReadonlyState(colorPath);
+        queueEditorPreview(0);
+        return;
+    }
+
     if (target.dataset.editorToggle) {
         const toggleKey = target.dataset.editorToggle;
         appState.editor.toggles[toggleKey] = target.checked;
@@ -2075,6 +2195,16 @@ function syncEditorFormFromState() {
         if (!checkbox) return;
         checkbox.checked = Boolean(appState.editor.toggles[key]);
         updateOptionalGroupReadonlyState(key);
+    });
+
+    COLOR_FIELD_PATHS.forEach(path => {
+        const checkbox = appState.editor.panelEl.querySelector(`[data-editor-color-toggle="${path}"]`);
+        if (!checkbox) return;
+        if (typeof appState.editor.colorToggles[path] !== 'boolean') {
+            appState.editor.colorToggles[path] = false;
+        }
+        checkbox.checked = Boolean(appState.editor.colorToggles[path]);
+        updateColorFieldReadonlyState(path);
     });
 
     appState.editor.syncFormLocked = false;
@@ -2130,6 +2260,33 @@ function updateOptionalGroupReadonlyState(groupKey) {
     controls.forEach(control => {
         control.disabled = !isEnabled;
     });
+
+    const colorToggleControls = groupFields.querySelectorAll('[data-editor-color-toggle]');
+    colorToggleControls.forEach(control => {
+        const colorPath = control.dataset.editorColorToggle;
+        if (!colorPath) return;
+        updateColorFieldReadonlyState(colorPath);
+    });
+}
+
+function updateColorFieldReadonlyState(colorPath) {
+    if (!appState.editor.panelEl || !colorPath) return;
+
+    const colorInput = appState.editor.panelEl.querySelector(`[data-editor-path="${colorPath}"]`);
+    if (!colorInput) return;
+
+    const groupFields = colorInput.closest('[data-editor-group-fields]');
+    const groupKey = groupFields ? groupFields.dataset.editorGroupFields : '';
+    const groupEnabled = groupKey ? Boolean(appState.editor.toggles[groupKey]) : true;
+    const colorEnabled = isColorFieldToggleEnabled(appState.editor.colorToggles, colorPath);
+    const shouldEnable = groupEnabled && colorEnabled;
+
+    colorInput.disabled = !shouldEnable;
+
+    const colorFieldRow = colorInput.closest('.editor-color-field');
+    if (colorFieldRow) {
+        colorFieldRow.classList.toggle('is-disabled', !shouldEnable);
+    }
 }
 
 function getEditableCategoryByIndex(categoryIndex) {

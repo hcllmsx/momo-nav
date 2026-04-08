@@ -234,7 +234,7 @@ body {
 }
 
 .sidebar-link:hover {
-    color: var(--primary-color);
+    color: var(--primary-hover);
     background: rgba(var(--primary-rgb), 0.06);
 }
 
@@ -299,10 +299,12 @@ body {
     position: relative;
     min-width: 60px;
     text-align: center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .tab-btn:hover {
-    color: var(--primary-color);
+    color: var(--primary-hover);
     background: rgba(var(--primary-rgb), 0.05);
 }
 
@@ -331,7 +333,7 @@ body {
 
 .search-box:focus-within {
     box-shadow: var(--shadow-hover);
-    border-color: var(--primary-color);
+    border-color: var(--primary-hover);
 }
 
 .search-box input {
@@ -371,7 +373,7 @@ body {
 
 .search-clear-btn:hover {
     background: rgba(var(--primary-rgb), 0.2);
-    color: var(--primary-color);
+    color: var(--primary-hover);
 }
 
 .search-clear-btn span {
@@ -473,7 +475,7 @@ body {
 }
 
 .history-clear-all-btn:hover {
-    color: var(--primary-color);
+    color: var(--primary-hover);
     background: rgba(255, 255, 255, 0.98);
 }
 
@@ -505,6 +507,7 @@ body {
 
 .search-history-item button:hover {
     background: rgba(var(--primary-rgb), 0.14);
+    color: var(--primary-hover);
 }
 
 .history-delete-btn {
@@ -538,7 +541,7 @@ body {
 }
 
 .history-delete-btn:hover {
-    color: var(--primary-color) !important;
+    color: var(--primary-hover) !important;
     background: rgba(255, 255, 255, 0.98) !important;
 }
 /* 分类样式 */
@@ -647,7 +650,7 @@ body {
 .nav-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-hover);
-    border-color: var(--primary-color);
+    border-color: var(--primary-hover);
 }
 
 .nav-icon {
@@ -686,6 +689,9 @@ body {
     bottom: 10px;
     font-size: 0.84rem;
     font-weight: 500;
+    line-height: 1;
+    padding-bottom: 2px;
+    margin-bottom: -2px;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -728,7 +734,7 @@ body {
 }
 
 .footer a:hover {
-    color: var(--primary-color);
+    color: var(--primary-hover);
     text-decoration: underline;
 }
 
@@ -991,7 +997,7 @@ body.desktop-sidebar-fixed .category-sidebar {
 }
 
 .editor-launcher-btn:hover {
-    background: var(--primary-color);
+    background: var(--primary-hover);
     color: #fff;
     transform: translateY(-1px);
 }
@@ -1084,6 +1090,26 @@ body.editor-panel-open .footer {
     color: var(--text-muted);
 }
 
+.editor-section .editor-color-field {
+    display: grid;
+    grid-template-columns: auto minmax(78px, auto) 1fr;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-section .editor-color-field > span {
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.editor-section .editor-color-field input[type="color"] {
+    margin: 0;
+}
+
+.editor-section .editor-color-field.is-disabled > span {
+    opacity: 0.58;
+}
+
 .editor-section input,
 .editor-section textarea,
 .editor-section select {
@@ -1094,6 +1120,7 @@ body.editor-panel-open .footer {
     font-size: 0.8rem;
     color: var(--text-color);
     background: #fff;
+    font-family: inherit;
 }
 
 .editor-section input[type="color"] {
@@ -1185,6 +1212,11 @@ body.editor-panel-open .footer {
     border-color: var(--primary-color);
     background: var(--primary-color);
     color: #fff;
+}
+
+.editor-panel-foot .editor-btn-primary:hover {
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
 }
 
 body.editor-modal-open {
@@ -1287,6 +1319,7 @@ body.editor-modal-open {
     font-size: 0.86rem;
     color: var(--text-color);
     background: #fff;
+    font-family: inherit;
 }
 
 .editor-modal-field textarea {
@@ -1323,6 +1356,11 @@ body.editor-modal-open {
     color: #fff;
 }
 
+.editor-modal-foot .editor-btn-primary:hover {
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
+}
+
 .category-editor-tools {
     margin-left: auto;
     display: inline-flex;
@@ -1340,6 +1378,11 @@ body.editor-modal-open {
     line-height: 1;
     padding: 5px 8px;
     cursor: pointer;
+}
+
+.editor-inline-btn:hover {
+    color: var(--primary-hover);
+    border-color: rgba(var(--primary-rgb), 0.4);
 }
 
 .editor-inline-btn.danger {
@@ -1385,6 +1428,11 @@ body.editor-modal-open {
     min-height: 96px;
 }
 
+.editor-add-link-tile:hover {
+    color: var(--primary-hover);
+    border-color: rgba(var(--primary-rgb), 0.62);
+}
+
 .sidebar-add-category-btn {
     width: 100%;
     border: 1px dashed rgba(var(--primary-rgb), 0.3);
@@ -1395,6 +1443,12 @@ body.editor-modal-open {
     color: var(--primary-color);
     font-size: 0.8rem;
     cursor: pointer;
+}
+
+.sidebar-add-category-btn:hover {
+    color: var(--primary-hover);
+    border-color: rgba(var(--primary-rgb), 0.45);
+    background: rgba(var(--primary-rgb), 0.12);
 }
 
 .category.is-drop-target {

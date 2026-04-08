@@ -9,7 +9,6 @@
   },
   "background": {
     "texture": "mn-src/grid-me.png",
-    "color": "#fcfffe",
     "opacity": 0.3
   },
   "logo": {

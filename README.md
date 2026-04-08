@@ -145,7 +145,6 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 {
   "background": {
     "texture": "mn-src/grid-me.png",
-    "color": "#fcfffe",
     "opacity": 0.3
   }
 }
@@ -154,7 +153,6 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 | 字段 | 说明 | 默认值 |
 |------|------|--------|
 | `texture` | 纹理图片路径（相对路径或完整 URL） | - |
-| `color` | 底层背景色 | 当前主题色 |
 | `opacity` | 纹理透明度（0-1，值越小越淡） | `1`（不透明） |
 | `textureColor` | 纹理图案颜色（仅 SVG 有效） | 原原始颜色 |
 
@@ -162,7 +160,7 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 
 ```
 ┌──────────────────────────┐
-│  1. background 色块       │ ← body 背景色
+│  1. theme.bgColor 色块    │ ← body 背景色
 │  2. background.texture    │ ← 纹理层（可调透明度）
 │  3. cover 视频/图片       │ ← 顶部区域，向下渐隐
 │  4. 渐变遮罩             │ ← 自动生成，提升可读性
@@ -191,14 +189,14 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 | 字段 | 说明 |
 |------|------|
 | `primaryColor` / `primary` | 主色（按钮、高亮、标签等） |
-| `primaryHover` | 主色悬停态，不填会自动生成更深一档 |
+| `primaryHover` | 主色悬停/聚焦态，不填会自动生成更深一档 |
 | `bgColor` | 页面背景色（CSS `--bg-color`） |
 | `cardBg` | 卡片背景色（CSS `--card-bg`） |
 | `textColor` | 主文字颜色 |
 | `textMuted` | 次级文字颜色 |
 | `borderColor` | 边框颜色 |
 
-> `background.color` 会覆盖页面底层背景色（body 背景），优先级高于 `theme.bgColor`。
+> 页面底层背景色统一由 `theme.bgColor` 控制，`background` 仅负责纹理层。
 
 ### 搜索引擎配置
 
