@@ -307,6 +307,19 @@ function applyThemeConfig(themeConfig) {
     }
 }
 
+function isRasterIconFile(iconUrl) {
+    return /\.(png|jpe?g|gif|webp|ico)(\?.*)?$/i.test(String(iconUrl || '').trim());
+}
+
+function normalizeWebAppIconsConfig(iconsConfig) {
+    const safeConfig = iconsConfig && typeof iconsConfig === 'object' ? iconsConfig : {};
+    return {
+        appleTouchIcon: trimToString(safeConfig.appleTouchIcon),
+        icon192: trimToString(safeConfig.icon192),
+        icon512: trimToString(safeConfig.icon512),
+    };
+}
+
 // 应用站点配置
 async function applySiteConfig(data) {
     if (!data) return;
@@ -329,10 +342,35 @@ async function applySiteConfig(data) {
         }
     }
 
-    // 设置 Favicon
+    const favicon = document.getElementById('favicon');
+    const favicon192 = document.getElementById('favicon192');
+    const favicon512 = document.getElementById('favicon512');
+    const appleTouchIcon = document.getElementById('appleTouchIcon');
+
+    // 设置 Favicon（浏览器标签页）
     if (data.favicon) {
-        const favicon = document.getElementById('favicon');
         if (favicon) favicon.href = data.favicon;
+    }
+
+    // 设置主屏图标（iOS/Android）
+    const webAppIcons = normalizeWebAppIconsConfig(data.webAppIcons);
+    const rasterFavicon = isRasterIconFile(data.favicon) ? trimToString(data.favicon) : '';
+    const resolvedAppleTouchIcon = webAppIcons.appleTouchIcon || rasterFavicon;
+    const resolvedIcon192 = webAppIcons.icon192 || rasterFavicon;
+    const resolvedIcon512 = webAppIcons.icon512 || rasterFavicon;
+
+    if (resolvedAppleTouchIcon && appleTouchIcon) appleTouchIcon.href = resolvedAppleTouchIcon;
+    if (resolvedIcon192 && favicon192) favicon192.href = resolvedIcon192;
+    if (resolvedIcon512 && favicon512) favicon512.href = resolvedIcon512;
+
+    const themeColorMeta = document.getElementById('metaThemeColor');
+    const themePrimaryColor = sanitizeThemeColor(
+        data.theme && typeof data.theme === 'object'
+            ? (data.theme.primaryColor || data.theme.primary)
+            : ''
+    );
+    if (themeColorMeta && themePrimaryColor) {
+        themeColorMeta.content = themePrimaryColor;
     }
 
     // 1. 设置顶部封面背景（视频/图片）- 独立于 background
@@ -844,6 +882,40 @@ function syncSearchClearButton(searchInput, clearBtn) {
     clearBtn.classList.toggle('visible', searchInput.value.trim().length > 0);
 }
 
+function scrollSearchTabIntoView(tabBtn, options = {}) {
+    if (!tabBtn) return;
+
+    const tabsContainer = tabBtn.closest('.search-tabs');
+    if (!tabsContainer) return;
+
+    const containerRect = tabsContainer.getBoundingClientRect();
+    const tabRect = tabBtn.getBoundingClientRect();
+    const edgePadding = 8;
+
+    const hiddenOnLeft = tabRect.left < containerRect.left + edgePadding;
+    const hiddenOnRight = tabRect.right > containerRect.right - edgePadding;
+
+    if (!hiddenOnLeft && !hiddenOnRight) return;
+
+    const currentScrollLeft = tabsContainer.scrollLeft;
+    let targetScrollLeft = currentScrollLeft;
+
+    if (hiddenOnLeft) {
+        targetScrollLeft = currentScrollLeft - ((containerRect.left + edgePadding) - tabRect.left);
+    } else if (hiddenOnRight) {
+        targetScrollLeft = currentScrollLeft + (tabRect.right - (containerRect.right - edgePadding));
+    }
+
+    const maxScrollLeft = Math.max(tabsContainer.scrollWidth - tabsContainer.clientWidth, 0);
+    const nextScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
+    const immediate = Boolean(options.immediate);
+
+    tabsContainer.scrollTo({
+        left: nextScrollLeft,
+        behavior: immediate ? 'auto' : 'smooth'
+    });
+}
+
 function getLocalSearchHistory() {
     try {
         const raw = localStorage.getItem(LOCAL_SEARCH_HISTORY_KEY);
@@ -954,6 +1026,7 @@ function setupSearch() {
             tabBtns.forEach(b => b.classList.remove('active'));
             // 激活当前选项卡
             btn.classList.add('active');
+            scrollSearchTabIntoView(btn);
             // 保存当前搜索引擎
             currentSearchEngine.engine = btn.dataset.engine;
             currentSearchEngine.url = btn.dataset.url;
@@ -975,13 +1048,20 @@ function setupSearch() {
     });
 
     // 恢复上次选择的选项卡状态
+    let activeTabBtn = null;
     tabBtns.forEach(btn => {
         if (btn.dataset.engine === currentSearchEngine.engine) {
             btn.classList.add('active');
+            activeTabBtn = btn;
         } else {
             btn.classList.remove('active');
         }
     });
+    if (activeTabBtn) {
+        window.requestAnimationFrame(() => {
+            scrollSearchTabIntoView(activeTabBtn, { immediate: true });
+        });
+    }
     // 更新 placeholder 为保存的状态
     if (currentSearchEngine.engine === 'local') {
         searchInput.placeholder = '在本页导航中搜索...';
@@ -1138,6 +1218,10 @@ const DEFAULT_PAGE_CONFIG = {
     captured: false,
     title: '',
     favicon: '',
+    favicon192: '',
+    favicon512: '',
+    appleTouchIcon: '',
+    metaThemeColor: '',
     siteDescription: '',
     siteKeywords: '',
     footerName: '',
@@ -1319,6 +1403,7 @@ function normalizeEditableCategories(categories) {
 function ensureEditorDataShape(sourceData) {
     const safeData = deepClone(sourceData || {}) || {};
     safeData.logo = safeData.logo && typeof safeData.logo === 'object' ? safeData.logo : {};
+    safeData.webAppIcons = safeData.webAppIcons && typeof safeData.webAppIcons === 'object' ? safeData.webAppIcons : {};
     safeData.theme = safeData.theme && typeof safeData.theme === 'object' ? safeData.theme : {};
     safeData.cover = safeData.cover && typeof safeData.cover === 'object' ? safeData.cover : {};
     safeData.background = safeData.background && typeof safeData.background === 'object' ? safeData.background : {};
@@ -1343,6 +1428,10 @@ function captureDefaultPageConfig() {
     if (DEFAULT_PAGE_CONFIG.captured) return;
 
     const favicon = document.getElementById('favicon');
+    const favicon192 = document.getElementById('favicon192');
+    const favicon512 = document.getElementById('favicon512');
+    const appleTouchIcon = document.getElementById('appleTouchIcon');
+    const metaThemeColor = document.getElementById('metaThemeColor');
     const metaDescription = document.getElementById('metaDescription');
     const metaKeywords = document.getElementById('metaKeywords');
     const footerSiteName = document.getElementById('footerSiteName');
@@ -1351,6 +1440,10 @@ function captureDefaultPageConfig() {
 
     DEFAULT_PAGE_CONFIG.title = document.title;
     DEFAULT_PAGE_CONFIG.favicon = favicon ? favicon.getAttribute('href') || '' : '';
+    DEFAULT_PAGE_CONFIG.favicon192 = favicon192 ? favicon192.getAttribute('href') || '' : '';
+    DEFAULT_PAGE_CONFIG.favicon512 = favicon512 ? favicon512.getAttribute('href') || '' : '';
+    DEFAULT_PAGE_CONFIG.appleTouchIcon = appleTouchIcon ? appleTouchIcon.getAttribute('href') || '' : '';
+    DEFAULT_PAGE_CONFIG.metaThemeColor = metaThemeColor ? metaThemeColor.getAttribute('content') || '' : '';
     DEFAULT_PAGE_CONFIG.siteDescription = metaDescription ? (metaDescription.getAttribute('content') || '') : '';
     DEFAULT_PAGE_CONFIG.siteKeywords = metaKeywords ? (metaKeywords.getAttribute('content') || '') : '';
     DEFAULT_PAGE_CONFIG.footerName = footerSiteName ? footerSiteName.textContent || '' : '';
@@ -1382,6 +1475,10 @@ function resetPageConfigToDefaults() {
     const bannerEl = document.getElementById('bannerBg');
     const rootStyle = document.documentElement.style;
     const favicon = document.getElementById('favicon');
+    const favicon192 = document.getElementById('favicon192');
+    const favicon512 = document.getElementById('favicon512');
+    const appleTouchIcon = document.getElementById('appleTouchIcon');
+    const metaThemeColor = document.getElementById('metaThemeColor');
     const metaDescription = document.getElementById('metaDescription');
     const metaKeywords = document.getElementById('metaKeywords');
     const footerSiteName = document.getElementById('footerSiteName');
@@ -1390,6 +1487,10 @@ function resetPageConfigToDefaults() {
 
     document.title = DEFAULT_PAGE_CONFIG.title;
     if (favicon) favicon.href = DEFAULT_PAGE_CONFIG.favicon;
+    if (favicon192) favicon192.href = DEFAULT_PAGE_CONFIG.favicon192;
+    if (favicon512) favicon512.href = DEFAULT_PAGE_CONFIG.favicon512;
+    if (appleTouchIcon) appleTouchIcon.href = DEFAULT_PAGE_CONFIG.appleTouchIcon;
+    if (metaThemeColor) metaThemeColor.content = DEFAULT_PAGE_CONFIG.metaThemeColor;
     if (metaDescription) metaDescription.content = DEFAULT_PAGE_CONFIG.siteDescription;
     if (metaKeywords) metaKeywords.content = DEFAULT_PAGE_CONFIG.siteKeywords;
     if (footerSiteName) footerSiteName.textContent = DEFAULT_PAGE_CONFIG.footerName || '默默导航';
@@ -1596,6 +1697,22 @@ function sanitizeLogoFromEditor(logoData) {
     return Object.keys(output).length > 0 ? output : null;
 }
 
+function sanitizeWebAppIconsFromEditor(webAppIconsData) {
+    if (!webAppIconsData || typeof webAppIconsData !== 'object') return null;
+    const output = {};
+
+    const appleTouchIcon = trimToString(webAppIconsData.appleTouchIcon);
+    if (appleTouchIcon) output.appleTouchIcon = appleTouchIcon;
+
+    const icon192 = trimToString(webAppIconsData.icon192);
+    if (icon192) output.icon192 = icon192;
+
+    const icon512 = trimToString(webAppIconsData.icon512);
+    if (icon512) output.icon512 = icon512;
+
+    return Object.keys(output).length > 0 ? output : null;
+}
+
 function sanitizeKeywordsFromEditor(keywords) {
     if (Array.isArray(keywords)) {
         const values = keywords.map(item => trimToString(item)).filter(Boolean);
@@ -1668,6 +1785,9 @@ function buildConfigFromEditorState() {
 
     const favicon = trimToString(editorData.favicon);
     if (favicon) output.favicon = favicon;
+
+    const webAppIcons = sanitizeWebAppIconsFromEditor(editorData.webAppIcons);
+    if (webAppIcons) output.webAppIcons = webAppIcons;
 
     const logo = sanitizeLogoFromEditor(editorData.logo);
     if (logo) output.logo = logo;
@@ -1803,6 +1923,9 @@ function initEditorUi() {
                     <label>siteDescription<textarea rows="3" data-editor-path="siteDescription" id="editorFieldSiteDescription" placeholder="简单描述网站的目的和内容"></textarea></label>
                     <label>siteKeywords<input type="text" data-editor-path="siteKeywords" id="editorFieldSiteKeywords" placeholder="用逗号分隔的关键词，如：工具,资源,导航"></label>
                     <label>favicon<input type="text" data-editor-path="favicon" id="editorFieldFavicon" placeholder="网站图标的URL"></label>
+                    <label>webAppIcons.appleTouchIcon<input type="text" data-editor-path="webAppIcons.appleTouchIcon" id="editorFieldAppleTouchIcon" placeholder="iOS 主屏图标（建议 180x180 PNG）"></label>
+                    <label>webAppIcons.icon192<input type="text" data-editor-path="webAppIcons.icon192" id="editorFieldWebIcon192" placeholder="Android 图标（192x192 PNG）"></label>
+                    <label>webAppIcons.icon512<input type="text" data-editor-path="webAppIcons.icon512" id="editorFieldWebIcon512" placeholder="PWA 图标（512x512 PNG）"></label>
                 </section>
 
                 <section class="editor-section">
@@ -1938,6 +2061,7 @@ function initEditorUi() {
             </div>
             <div class="editor-panel-foot">
                 <button type="button" class="editor-btn-primary" data-editor-action="export-config">导出配置</button>
+                <button type="button" data-editor-action="export-manifest">导出 site.webmanifest</button>
                 <button type="button" data-editor-action="clear-draft">清除本地草稿</button>
             </div>
         `;
@@ -2122,6 +2246,9 @@ async function executeEditorAction(action, dataset = {}) {
             return;
         case 'export-config':
             exportEditorConfig();
+            return;
+        case 'export-manifest':
+            exportSiteManifest();
             return;
         case 'clear-draft':
             clearEditorDraftWithConfirm();
@@ -2826,18 +2953,87 @@ function clearEditorDragState() {
     appState.editor.drag = null;
 }
 
-function exportEditorConfig() {
-    const payload = buildConfigFromEditorState();
+function downloadJsonFile(fileName, payload, mimeType = 'application/json;charset=utf-8') {
     const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const blob = new Blob([json], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'momo-nav.json';
+    anchor.download = fileName;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function inferImageMimeType(iconPath) {
+    const path = trimToString(iconPath).toLowerCase();
+    if (/\.(jpe?g)(\?.*)?$/.test(path)) return 'image/jpeg';
+    if (/\.(webp)(\?.*)?$/.test(path)) return 'image/webp';
+    if (/\.(gif)(\?.*)?$/.test(path)) return 'image/gif';
+    if (/\.(ico)(\?.*)?$/.test(path)) return 'image/x-icon';
+    return 'image/png';
+}
+
+function buildSiteManifestFromConfig(config) {
+    const safeConfig = config && typeof config === 'object' ? config : {};
+    const safeTheme = safeConfig.theme && typeof safeConfig.theme === 'object' ? safeConfig.theme : {};
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const defaultPrimaryColor = trimToString(rootStyles.getPropertyValue('--primary-color'));
+    const defaultBgColor = trimToString(rootStyles.getPropertyValue('--bg-color'));
+
+    const siteName = trimToString(safeConfig.siteName) || trimToString(document.title) || '默默导航';
+    const shortName = trimToString(safeConfig.footerName) || siteName;
+    const themeColor = sanitizeThemeColor(safeTheme.primaryColor || safeTheme.primary)
+        || sanitizeThemeColor(defaultPrimaryColor)
+        || '#fe902a';
+    const backgroundColor = sanitizeThemeColor(safeTheme.bgColor)
+        || sanitizeThemeColor(defaultBgColor)
+        || '#f7f7f7';
+
+    const iconLinks = normalizeWebAppIconsConfig(safeConfig.webAppIcons);
+    const fallback192 = trimToString(document.getElementById('favicon192')?.getAttribute('href'));
+    const fallback512 = trimToString(document.getElementById('favicon512')?.getAttribute('href'));
+    const icon192 = iconLinks.icon192 || fallback192;
+    const icon512 = iconLinks.icon512 || fallback512;
+    const icons = [];
+
+    if (icon192) {
+        icons.push({
+            src: icon192,
+            sizes: '192x192',
+            type: inferImageMimeType(icon192),
+        });
+    }
+
+    if (icon512) {
+        icons.push({
+            src: icon512,
+            sizes: '512x512',
+            type: inferImageMimeType(icon512),
+        });
+    }
+
+    return {
+        name: siteName,
+        short_name: shortName,
+        start_url: '.',
+        display: 'standalone',
+        background_color: backgroundColor,
+        theme_color: themeColor,
+        icons,
+    };
+}
+
+function exportEditorConfig() {
+    const payload = buildConfigFromEditorState();
+    downloadJsonFile('momo-nav.json', payload);
+}
+
+function exportSiteManifest() {
+    const config = buildConfigFromEditorState();
+    const manifestPayload = buildSiteManifestFromConfig(config);
+    downloadJsonFile('site.webmanifest', manifestPayload, 'application/manifest+json;charset=utf-8');
 }
 
 function clearEditorDraftWithConfirm() {

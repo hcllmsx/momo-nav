@@ -10,6 +10,7 @@
 - 🎨 **响应式设计** - 适配桌面和移动设备
 - ⚡ **纯静态** - 无需后端，直接部署
 - 🖼️ **多种图标支持** - 支持 Iconify、Iconfont、自定义图片
+- 📱 **主屏图标支持** - 支持 iOS/Android 添加到主屏幕图标配置
 
 ## 🚀 快速开始
 
@@ -42,6 +43,8 @@
 
 编辑好了之后导出`momo-nav.json`配置，替换掉原来的即可。不替换的话只是临时保存哦！
 
+编辑模式底部还支持一键导出 `site.webmanifest`（用于移动端“添加到主屏幕”图标与主题色）。
+
 ## 📝 完整配置说明
 
 ### 基础配置
@@ -53,6 +56,11 @@
   "siteDescription": "便捷的网址导航收藏夹",
   "siteKeywords": "导航,书签,收藏夹",
   "favicon": "https://api.iconify.design/mdi:compass.svg",
+  "webAppIcons": {
+    "appleTouchIcon": "mn-src/momonav-icon-180px.png",
+    "icon192": "mn-src/momonav-icon-192px.png",
+    "icon512": "mn-src/momonav-icon-512px.png"
+  },
   "theme": {
     "primaryColor": "#4a90d9"
   },
@@ -66,7 +74,8 @@
 | `footerName` | 页脚显示的名称（可选，默认用 siteName） | `"默默导航"` |
 | `siteDescription` | 网站描述（SEO用） | `"便捷的网址导航"` |
 | `siteKeywords` | 额外关键词（SEO用，与分类名自动合并去重） | `"导航,书签"` |
-| `favicon` | 浏览器标签页图标 | `"https://.../icon.svg"` |
+| `favicon` | 浏览器标签页图标（非主屏图标） | `"https://.../icon.svg"` |
+| `webAppIcons` | 主屏图标配置（iOS/Android/PWA） | `{"icon192":"...png","icon512":"...png"}` |
 | `theme` | 主题颜色配置（可选） | `{"primaryColor":"#4a90d9"}` |
 
 ### Logo 配置
@@ -197,6 +206,36 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 | `borderColor` | 边框颜色 |
 
 > 页面底层背景色统一由 `theme.bgColor` 控制，`background` 仅负责纹理层。
+
+### 移动端主屏图标与 Manifest
+
+移动端“添加到主屏幕”主要读取的是 `apple-touch-icon` / `site.webmanifest`，不是普通 `favicon`。
+
+推荐在 `momo-nav.json` 中配置：
+
+```json
+{
+  "webAppIcons": {
+    "appleTouchIcon": "mn-src/momonav-icon-180px.png",
+    "icon192": "mn-src/momonav-icon-192px.png",
+    "icon512": "mn-src/momonav-icon-512px.png"
+  }
+}
+```
+
+| 字段 | 用途 | 建议尺寸 |
+|------|------|----------|
+| `webAppIcons.appleTouchIcon` | iOS 主屏图标 | `180x180` |
+| `webAppIcons.icon192` | Android/PWA 图标 | `192x192` |
+| `webAppIcons.icon512` | PWA 高分辨率图标 | `512x512` |
+
+补充说明：
+- 图标推荐使用不透明背景 PNG（兼容性与观感更稳）。
+- 如果 `webAppIcons` 未配置，程序会尝试用位图 `favicon` 兜底。
+- 根目录的 `site.webmanifest` 可通过编辑模式一键导出。
+- `site.webmanifest` 中：
+  - `background_color` 默认取 `theme.bgColor`
+  - `theme_color` 默认取 `theme.primaryColor`（兼容 `theme.primary`）
 
 ### 搜索引擎配置
 

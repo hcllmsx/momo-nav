@@ -13,6 +13,8 @@ button,
 }
 
 :root {
+    color-scheme: light;
+    color-scheme: only light;
     --primary-color: #4a90d9;
     --primary-hover: #357abd;
     --primary-rgb: 74, 144, 217;
@@ -283,6 +285,14 @@ body {
     padding-left: 10px;
     position: relative;
     z-index: 2;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.search-tabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .tab-btn {
@@ -299,6 +309,14 @@ body {
     position: relative;
     min-width: 60px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    line-height: 1.2;
+    appearance: none;
+    -webkit-appearance: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -888,18 +906,45 @@ body.desktop-sidebar-fixed .category-sidebar {
     }
 
     .search-tabs {
-        padding-left: 5px;
+        margin-bottom: 8px;
+        padding-left: 0;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
     }
 
     .tab-btn {
         padding: 6px 12px 7px;
         font-size: 0.8rem;
-        min-width: 50px;
+        min-width: max-content;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: rgba(var(--card-bg-rgb), 0.92);
+    }
+
+    .tab-btn.active {
+        border-color: rgba(var(--primary-rgb), 0.4);
+        border-bottom-color: rgba(var(--primary-rgb), 0.4);
+        background: rgba(var(--primary-rgb), 0.12);
+    }
+
+    .search-wrapper:has(#searchInput:focus) .tab-btn.active {
+        border-color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        box-shadow: none;
+    }
+
+    .search-box {
+        border-radius: 12px;
+    }
+
+    .search-box:focus-within {
+        border-color: var(--primary-color);
     }
 
     .nav-grid {
-        grid-template-columns: repeat(auto-fill, minmax(92px, 92px));
-        justify-content: start;
+        grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
         gap: 10px;
     }
 
@@ -932,10 +977,8 @@ body.desktop-sidebar-fixed .category-sidebar {
 
 @media (max-width: 480px) {
     .search-tabs {
-        padding-left: 5px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        flex-wrap: nowrap;
+        margin-bottom: 8px;
+        gap: 6px;
     }
 
     .search-tabs::-webkit-scrollbar {
@@ -946,24 +989,23 @@ body.desktop-sidebar-fixed .category-sidebar {
         padding: 6px 10px 7px;
         font-size: 0.75rem;
         white-space: nowrap;
-        min-width: 45px;
+        min-width: max-content;
     }
 
     .nav-grid {
-        grid-template-columns: repeat(auto-fill, minmax(84px, 84px));
-        justify-content: start;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 8px;
     }
 
     .nav-card {
         aspect-ratio: 1 / 1;
         min-height: 0;
-        padding: 10px 6px 28px;
+        padding: 10px 4px 26px;
     }
 
     .nav-icon {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
     }
     
     .nav-name {

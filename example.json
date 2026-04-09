@@ -4,6 +4,11 @@
   "siteDescription": "这里是一个导航网站的描述文字",
   "siteKeywords": "默默导航,莫莫导航,导航,书签,起始页",
   "favicon": "mn-src/momonav-icon.svg",
+  "webAppIcons": {
+    "appleTouchIcon": "mn-src/momonav-icon-180px.png",
+    "icon192": "mn-src/momonav-icon-192px.png",
+    "icon512": "mn-src/momonav-icon-512px.png"
+  },
   "theme": {
     "primaryColor": "#4a90d9"
   },
@@ -21,13 +26,23 @@
   },
   "categories": [
     {
-      "name": "🧰 工具",
+      "name": "❤️ 默默导航演示站点",
       "items": [
         {
           "name": "默默导航",
+          "url": "https://momo-nav.msx.cc.cd",
+          "title": "默默导航演示站点",
+          "keywords": "mm"
+        }
+      ]
+    },
+    {
+      "name": "🧰 工具",
+      "items": [
+        {
+          "name": "默默导航GitHub",
           "url": "https://github.com/hcllmsx/momo-nav",
-          "title": "默默导航",
-          "keywords": "mm",
+          "title": "默默导航GitHub仓库",
           "icon": "imn-momonav-icon"
         },
         {
