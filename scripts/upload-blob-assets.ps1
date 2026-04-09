@@ -80,7 +80,29 @@ function ConvertTo-RelativeAssetPath {
         return $null
     }
 
+    # Skip icon class names like "imn-chatgpt"; keep only likely file paths.
+    if (-not ($normalized -match '\.(svg|png|jpe?g|webp|gif|ico|bmp|avif|tiff?)$')) {
+        return $null
+    }
+
     return $normalized
+}
+
+function Invoke-BlobPut {
+    param(
+        [string]$LocalPath,
+        [string]$RemotePath,
+        [string]$Token
+    )
+
+    & vercel blob put "$LocalPath" `
+        --pathname "$RemotePath" `
+        --force `
+        --rw-token "$Token" | Out-Host
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Upload failed: $LocalPath -> $RemotePath (exit code $LASTEXITCODE)"
+    }
 }
 
 function Get-ReferencedAssetPaths {
@@ -138,10 +160,7 @@ $referencedAssets = Get-ReferencedAssetPaths -NavData $navData
 $navRemotePath = Join-BlobPath -PrefixValue $Prefix -RelativePath "momo-nav.json"
 
 Write-Host "Uploading momo-nav.json ..."
-vercel blob put "$jsonPath" `
-    --pathname "$navRemotePath" `
-    --allow-overwrite `
-    --rw-token "$RwToken" | Out-Host
+Invoke-BlobPut -LocalPath "$jsonPath" -RemotePath "$navRemotePath" -Token "$RwToken"
 
 $uploaded = 0
 $missing = New-Object System.Collections.Generic.List[string]
@@ -156,10 +175,7 @@ foreach ($assetPath in $referencedAssets) {
     $remotePath = Join-BlobPath -PrefixValue $Prefix -RelativePath $assetPath
 
     Write-Host "Uploading $assetPath ..."
-    vercel blob put "$localPath" `
-        --pathname "$remotePath" `
-        --allow-overwrite `
-        --rw-token "$RwToken" | Out-Host
+    Invoke-BlobPut -LocalPath "$localPath" -RemotePath "$remotePath" -Token "$RwToken"
 
     $uploaded++
 }
