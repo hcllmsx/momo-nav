@@ -243,6 +243,13 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 
 如需调整顺序或修改默认，编辑 `index.html` 中的搜索选项卡。
 
+#### 添加更多搜索引擎
+
+编辑 `index.html`，在 `.search-tabs` 中添加：
+```html
+<button class="tab-btn" data-engine="yahoo" data-url="https://search.yahoo.com/search?p=">Yahoo</button>
+```
+
 ### Iconfont 配置
 
 #### 在线方式（推荐）
@@ -313,25 +320,17 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 - 品牌图标在 **Simple Icons** 里（如 Apple、QQ、微信等）
 - 格式：`https://api.iconify.design/{前缀}:{图标名}.svg`
 
-
-## 🛠️ 高级自定义
-
-### 修改主题颜色
-
-优先编辑 `momo-nav.json` 里的 `theme` 字段（见上方“主题配置”）。
-
-如需设置全局默认值，也可以直接修改 `css/style.css` 的 `:root` 变量。
-
-### 添加更多搜索引擎
-
-编辑 `index.html`，在 `.search-tabs` 中添加：
-```html
-<button class="tab-btn" data-engine="yahoo" data-url="https://search.yahoo.com/search?p=">Yahoo</button>
-```
-
 ## 📝 配置示例
 
 见仓库根目录下 `example.json` 文件。
+
+## vercel部署
+
+一般正常部署即可，但想必你也是注意到了这个仓库的目录下有`vercel.json`文件，和`scripts/`文件夹，这个似乎不是正常静态网站部署所必须的。
+
+那么，你如果想要玩点花活儿，可以参考：[Vercel构建时从 Vercel Blob 中拉取资源的实践](https://ihcll.cn/posts/use-vercel-blob-storage-for-build-time-assets/)，这里说明了这个是干啥的。
+
+但只想安安静静的用一下导航，正常部署，大可不必理会，你甚至可以删掉这些文件。
 
 ## 📄 许可证
 
