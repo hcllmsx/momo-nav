@@ -28,7 +28,7 @@ async function exists(targetPath) {
   }
 }
 
-function normalizeIconPath(iconValue) {
+function normalizeItemIconPath(iconValue) {
   if (typeof iconValue !== 'string') return null;
   const trimmed = iconValue.trim();
   if (!trimmed) return null;
@@ -41,29 +41,18 @@ function normalizeIconPath(iconValue) {
   if (normalized.startsWith('/')) normalized = normalized.slice(1);
   if (normalized.startsWith('./')) normalized = normalized.slice(2);
   if (normalized.includes('..')) return null;
+  if (!/\.(svg|png|jpe?g|webp|gif|ico|bmp|avif|tiff?)$/i.test(normalized)) return null;
   return normalized;
 }
 
 function collectReferencedAssetPaths(navData) {
   const collected = new Set();
-  const topLevelAssetKeys = ['favicon', 'favicon192', 'favicon512', 'appleTouchIcon', 'siteManifest'];
-
-  for (const key of topLevelAssetKeys) {
-    const assetPath = normalizeIconPath(navData?.[key]);
-    if (assetPath) {
-      collected.add(assetPath);
-    }
-  }
-
   const categories = Array.isArray(navData?.categories) ? navData.categories : [];
 
   for (const category of categories) {
-    const entries = [];
-    if (Array.isArray(category?.websites)) entries.push(...category.websites);
-    if (Array.isArray(category?.items)) entries.push(...category.items);
-
-    for (const entry of entries) {
-      const iconPath = normalizeIconPath(entry?.icon);
+    const items = Array.isArray(category?.items) ? category.items : [];
+    for (const item of items) {
+      const iconPath = normalizeItemIconPath(item?.icon);
       if (iconPath) {
         collected.add(iconPath);
       }
