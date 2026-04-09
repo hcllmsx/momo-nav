@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "node scripts/fetch-blob-assets.mjs"
+  "buildCommand": "node scripts/fetch-blob-assets.mjs",
+  "outputDirectory": "."
 }
