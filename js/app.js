@@ -154,13 +154,15 @@ async function loadData() {
     try {
         for (const dataUrl of dataSources) {
             try {
-                console.log('开始加载导航数据:', dataUrl, '当前页面 URL:', window.location.href);
-                const response = await fetch(dataUrl, { cache: 'no-cache' });
+                console.log('开始加载导航数据:', dataUrl);
+                const response = await fetch(`${dataUrl}?t=${Date.now()}`, { cache: 'no-cache' });
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
                 }
 
-                appState.navData = await response.json();
+                const rawData = await response.json();
+                console.log(`从 ${dataUrl} 获取到的原始数据:`, rawData);
+                appState.navData = rawData;
                 loadedFrom = dataUrl;
                 break;
             } catch (error) {
@@ -193,7 +195,16 @@ async function loadData() {
             }
         }
 
+        // 渲染顶部导航菜单
+        console.log('检查 navLinks 数据:', appState.navData.navLinks);
+        if (appState.navData.navLinks) {
+            renderHeaderNav(appState.navData.navLinks);
+        }
+
         renderNav(appState.navData);
+
+        // 渲染完成后初始化下拉菜单和移动端交互
+        initHeaderDropdown();
     } catch (error) {
         console.error('加载导航数据失败:', error);
         const container = document.getElementById('navContent');
@@ -472,7 +483,7 @@ async function applySiteConfig(data) {
         if (bg.texture) {
             const applyTextureBg = async () => {
                 let textureUrl = escapeHtml(bg.texture);
-                
+
                 // 如果设置了纹理颜色，需要获取 SVG 并修改 fill
                 if (bg.textureColor && bg.texture.endsWith('.svg')) {
                     try {
@@ -488,9 +499,9 @@ async function applySiteConfig(data) {
                         console.warn('修改 SVG 纹理颜色失败:', e);
                     }
                 }
-                
+
                 document.body.dataset.hasBgTexture = 'true';
-                
+
                 // 创建或更新样式元素
                 let bgStyle = document.getElementById('dynamic-bg-style');
                 if (!bgStyle) {
@@ -498,7 +509,7 @@ async function applySiteConfig(data) {
                     bgStyle.id = 'dynamic-bg-style';
                     document.head.appendChild(bgStyle);
                 }
-                
+
                 const opacity = (bg.opacity !== undefined) ? bg.opacity : 1;
                 bgStyle.textContent = `
                     body[data-has-bg-texture]::before {
@@ -517,7 +528,7 @@ async function applySiteConfig(data) {
                     }
                 `;
             };
-            
+
             await applyTextureBg();
         }
     }
@@ -1171,14 +1182,14 @@ function showToast(message, duration = 3000, backgroundColor = 'rgba(51, 51, 51,
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         white-space: nowrap;
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // 触发淡入
     requestAnimationFrame(() => {
         toast.style.opacity = '1';
     });
-    
+
     // 自动消失
     setTimeout(() => {
         toast.style.opacity = '0';
@@ -1581,6 +1592,12 @@ function applyEditorDraftState(baseData) {
         appState.editor.data = draft.data;
         appState.editor.toggles = draft.toggles;
         appState.editor.colorToggles = draft.colorToggles || buildColorToggleStateFromData(draft.data);
+
+        // 确保从基础数据中保留导航链接（因为草稿可能还没保存这个新字段）
+        if (baseData.navLinks && !appState.editor.data.navLinks) {
+            appState.editor.data.navLinks = deepClone(baseData.navLinks);
+        }
+
         console.log('检测到本地编辑草稿，已优先加载 localStorage 配置。');
         return true;
     }
@@ -1817,6 +1834,10 @@ function buildConfigFromEditorState() {
         if (fontawesome) output.fontawesome = fontawesome;
     }
 
+    if (editorData.navLinks) {
+        output.navLinks = deepClone(editorData.navLinks);
+    }
+
     output.categories = sanitizeCategoriesFromEditor(editorData.categories);
     return output;
 }
@@ -1882,6 +1903,14 @@ async function refreshUiFromNavData() {
     ) ? searchInput.value.trim() : '';
 
     renderNav(appState.navData, activeSearchTerm);
+
+    // 渲染顶部导航菜单
+    if (appState.navData.navLinks) {
+        renderHeaderNav(appState.navData.navLinks);
+    }
+
+    // 初始化下拉菜单交互
+    initHeaderDropdown();
 }
 
 function initEditorUi() {
@@ -2138,6 +2167,15 @@ function bindEditorGlobalEvents() {
         navContent.addEventListener('dragend', clearEditorDragState);
     }
 
+    const headerNav = document.getElementById('headerNav');
+    if (headerNav) {
+        headerNav.addEventListener('click', handleEditorNavClick);
+        headerNav.addEventListener('dragstart', handleEditorDragStart);
+        headerNav.addEventListener('dragover', handleEditorDragOver);
+        headerNav.addEventListener('drop', handleEditorDrop);
+        headerNav.addEventListener('dragend', clearEditorDragState);
+    }
+
     if (sidebar) {
         sidebar.addEventListener('click', event => {
             if (!appState.editor.active) return;
@@ -2211,7 +2249,7 @@ function enterEditorMode() {
     updateEditorLauncherLabel();
     updateEditorLauncherVisibility();
     syncEditorFormFromState();
-    renderNav(appState.navData || buildConfigFromEditorState());
+    refreshUiFromNavData();
 }
 
 function exitEditorMode() {
@@ -2228,7 +2266,7 @@ function exitEditorMode() {
     clearEditorDragState();
     updateEditorLauncherLabel();
     updateEditorLauncherVisibility();
-    renderNav(appState.navData || buildConfigFromEditorState());
+    refreshUiFromNavData();
 }
 
 function handleEditorPanelClick(event) {
@@ -2270,6 +2308,24 @@ async function executeEditorAction(action, dataset = {}) {
             return;
         case 'delete-link':
             deleteLinkFromEditor(Number(dataset.categoryIndex), Number(dataset.itemIndex));
+            return;
+        case 'add-nav-link':
+            await handleAddNavLink();
+            return;
+        case 'edit-nav-link':
+            await handleEditNavLink(Number(dataset.index), dataset.childIndex !== undefined ? Number(dataset.childIndex) : undefined);
+            return;
+        case 'delete-nav-link':
+            handleDeleteNavLink(Number(dataset.index), dataset.childIndex !== undefined ? Number(dataset.childIndex) : undefined);
+            return;
+        case 'add-nav-child':
+            await handleAddNavChild(Number(dataset.index));
+            return;
+        case 'move-nav-up':
+            moveNavLink(Number(dataset.index));
+            return;
+        case 'move-nav-down':
+            moveNavLink(Number(dataset.index), true);
             return;
         default:
             return;
@@ -2492,8 +2548,9 @@ function openEditorModalForm(config = {}) {
             const name = trimToString(field.name);
             if (!name) return;
 
-            const wrapper = document.createElement('label');
-            wrapper.className = 'editor-modal-field';
+            const isLabelable = field.type !== 'submenu-editor' && field.type !== 'textarea';
+            const wrapper = document.createElement(isLabelable ? 'label' : 'div');
+            wrapper.className = 'editor-modal-field' + (field.width === 'half' ? ' is-half' : '');
 
             const caption = document.createElement('span');
             caption.className = 'editor-modal-field-label';
@@ -2508,6 +2565,16 @@ function openEditorModalForm(config = {}) {
                 } else {
                     inputEl.rows = 3;
                 }
+            } else if (field.type === 'select') {
+                inputEl = document.createElement('select');
+                const options = Array.isArray(field.options) ? field.options : [];
+                options.forEach(opt => {
+                    const optEl = document.createElement('option');
+                    optEl.value = opt.value;
+                    optEl.textContent = opt.text || opt.value;
+                    if (opt.value === field.value) optEl.selected = true;
+                    inputEl.appendChild(optEl);
+                });
             } else {
                 inputEl = document.createElement('input');
                 inputEl.type = trimToString(field.type) || 'text';
@@ -2518,7 +2585,22 @@ function openEditorModalForm(config = {}) {
             inputEl.placeholder = trimToString(field.placeholder);
             if (field.required) inputEl.dataset.required = 'true';
 
-            wrapper.appendChild(inputEl);
+            if (field.type === 'submenu-editor') {
+                const subEditor = document.createElement('div');
+                subEditor.className = 'submenu-editor-container';
+                subEditor.innerHTML = `
+                    <div class="submenu-editor-list" id="modalSubmenuList">
+                        ${(field.value || []).map((child, i) => renderSubmenuEditorRow(child, i)).join('')}
+                    </div>
+                    <button type="button" class="submenu-add-btn" id="modalAddSubmenu">+ 增加子菜单</button>
+                `;
+                wrapper.appendChild(subEditor);
+                // 延时绑定事件，确保 DOM 已插入
+                setTimeout(() => initModalSubmenuEditorActions(), 0);
+            } else {
+                wrapper.appendChild(inputEl);
+            }
+
             fieldsEl.appendChild(wrapper);
         });
     }
@@ -2569,6 +2651,21 @@ function handleEditorModalSubmit(event) {
     appState.editor.modalFields.forEach(field => {
         const name = trimToString(field.name);
         if (!name) return;
+        if (field.type === 'submenu-editor') {
+            const submenuRows = modalLayer.querySelectorAll('.submenu-editor-item');
+            const children = [];
+            submenuRows.forEach(row => {
+                const name = row.querySelector('.sub-name').value.trim();
+                const url = row.querySelector('.sub-url').value.trim();
+                const target = row.querySelector('.sub-target').value;
+                if (name || url) {
+                    children.push({ name, url, target });
+                }
+            });
+            values[name] = children;
+            return;
+        }
+
         const inputEl = form.elements.namedItem(name);
         const rawValue = inputEl ? String(inputEl.value || '') : '';
         values[name] = rawValue;
@@ -2799,6 +2896,22 @@ function handleEditorDragStart(event) {
         return;
     }
 
+    const navLinkWrapper = event.target.closest('.header-link-wrapper');
+    if (navLinkWrapper) {
+        const index = Number(navLinkWrapper.dataset.index);
+        if (!Number.isInteger(index)) return;
+
+        appState.editor.drag = {
+            type: 'navLink',
+            index,
+        };
+
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', `navLink:${index}`);
+        document.body.classList.add('is-editor-dragging');
+        return;
+    }
+
     const navCard = event.target.closest('.nav-card');
     if (!navCard) return;
 
@@ -2844,6 +2957,16 @@ function handleEditorDragOver(event) {
         } else if (targetGrid) {
             targetGrid.classList.add('is-drop-target-grid');
         }
+        return;
+    }
+
+    if (appState.editor.drag.type === 'navLink') {
+        const target = event.target.closest('.header-link-wrapper');
+        if (!target) return;
+
+        event.preventDefault();
+        clearEditorDropIndicators();
+        target.classList.add('is-drag-over');
     }
 }
 
@@ -2876,6 +2999,34 @@ function handleEditorDrop(event) {
 
         clearEditorDragState();
         applyEditorPreview();
+        return;
+    }
+
+    if (appState.editor.drag.type === 'navLink') {
+        const targetNav = event.target.closest('.header-link-wrapper');
+        if (!targetNav) {
+            clearEditorDragState();
+            return;
+        }
+
+        const fromIndex = appState.editor.drag.index;
+        const toIndex = Number(targetNav.dataset.index);
+
+        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
+            clearEditorDragState();
+            return;
+        }
+
+        const navLinks = appState.editor.data.navLinks;
+        const [moved] = navLinks.splice(fromIndex, 1);
+        if (!moved) {
+            clearEditorDragState();
+            return;
+        }
+        navLinks.splice(toIndex, 0, moved);
+
+        clearEditorDragState();
+        onNavLinksChange();
         return;
     }
 
@@ -2943,6 +3094,7 @@ function handleEditorDrop(event) {
 function clearEditorDropIndicators() {
     document.querySelectorAll('.is-drop-target').forEach(node => node.classList.remove('is-drop-target'));
     document.querySelectorAll('.is-drop-target-grid').forEach(node => node.classList.remove('is-drop-target-grid'));
+    document.querySelectorAll('.is-drag-over').forEach(node => node.classList.remove('is-drag-over'));
 }
 
 function clearEditorDragState() {
@@ -3325,4 +3477,328 @@ function createNavCard(item, categoryIndex, itemIndex) {
             ` : ''}
         </a>
     `;
+}
+
+// 初始化右上角头部下拉菜单
+// --- 顶部导航菜单编辑器逻辑 ---
+
+function renderSubmenuEditorRow(child = {}, index) {
+    return `
+        <div class="submenu-editor-item" draggable="true" data-index="${index}">
+            <div class="submenu-drag-handle">≡</div>
+            <input type="text" class="sub-name" placeholder="名称" value="${escapeHtml(child.name || '')}">
+            <input type="text" class="sub-url" placeholder="链接" value="${escapeHtml(child.url || '')}">
+            <select class="sub-target">
+                <option value="_self" ${child.target === '_self' ? 'selected' : ''}>_self</option>
+                <option value="_blank" ${child.target === '_blank' ? 'selected' : ''}>_blank</option>
+            </select>
+            <div class="delete-btn" title="删除">×</div>
+        </div>
+    `;
+}
+
+function initModalSubmenuEditorActions() {
+    const list = document.getElementById('modalSubmenuList');
+    const addBtn = document.getElementById('modalAddSubmenu');
+    if (!list || !addBtn) return;
+
+    addBtn.onclick = () => {
+        const index = list.querySelectorAll('.submenu-editor-item').length;
+        const rowHtml = renderSubmenuEditorRow({}, index);
+        const temp = document.createElement('div');
+        temp.innerHTML = rowHtml;
+        list.appendChild(temp.firstElementChild);
+    };
+
+    list.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const item = deleteBtn.closest('.submenu-editor-item');
+            if (item) {
+                console.log('Deleting submenu item', item.dataset.index);
+                item.remove();
+            }
+        }
+    });
+
+    // 子菜单内部拖拽排序
+    list.ondragstart = (e) => {
+        const item = e.target.closest('.submenu-editor-item');
+        if (item) {
+            appState.editor.modalDragIndex = Array.from(list.children).indexOf(item);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    };
+
+    list.ondragover = (e) => {
+        e.preventDefault();
+        const item = e.target.closest('.submenu-editor-item');
+        if (item) {
+            item.style.borderTop = '2px solid var(--primary-color)';
+        }
+    };
+
+    list.ondragleave = (e) => {
+        const item = e.target.closest('.submenu-editor-item');
+        if (item) {
+            item.style.borderTop = '';
+        }
+    };
+
+    list.ondrop = (e) => {
+        e.preventDefault();
+        const item = e.target.closest('.submenu-editor-item');
+        if (item) {
+            item.style.borderTop = '';
+            const toIndex = Array.from(list.children).indexOf(item);
+            const fromIndex = appState.editor.modalDragIndex;
+            if (fromIndex !== toIndex && fromIndex !== -1) {
+                const rows = Array.from(list.children);
+                const moved = rows.splice(fromIndex, 1)[0];
+                list.innerHTML = '';
+                rows.splice(toIndex, 0, moved);
+                rows.forEach(r => list.appendChild(r));
+            }
+        }
+    };
+}
+
+async function handleAddNavLink() {
+    const result = await openEditorModalForm({
+        title: '新增导航菜单',
+        fields: [
+            { name: 'name', label: '菜单名称', type: 'text', value: '', required: true, width: 'half' },
+            {
+                name: 'target', label: '打开方式', type: 'select', value: '_self', width: 'half', options: [
+                    { value: '_self', text: '新窗口(_self)' },
+                    { value: '_blank', text: '新窗口(_blank)' }
+                ]
+            },
+            { name: 'url', label: '链接地址', type: 'text', value: '' },
+            { name: 'children', label: '子菜单', type: 'submenu-editor', value: [] }
+        ]
+    });
+
+    if (result) {
+        if (!appState.editor.data.navLinks) appState.editor.data.navLinks = [];
+        appState.editor.data.navLinks.push(result);
+        onNavLinksChange();
+    }
+}
+
+async function handleEditNavLink(index) {
+    const navLinks = appState.editor.data.navLinks;
+    const link = navLinks[index];
+    if (!link) return;
+
+    const result = await openEditorModalForm({
+        title: '编辑导航菜单',
+        fields: [
+            { name: 'name', label: '菜单名称', type: 'text', value: link.name || '', required: true, width: 'half' },
+            {
+                name: 'target', label: '打开方式', type: 'select', value: link.target || '_self', width: 'half', options: [
+                    { value: '_self', text: '新窗口(_self)' },
+                    { value: '_blank', text: '新窗口(_blank)' }
+                ]
+            },
+            { name: 'url', label: '链接地址', type: 'text', value: link.url || '' },
+            { name: 'children', label: '子菜单', type: 'submenu-editor', value: link.children || [] }
+        ]
+    });
+
+    if (result) {
+        navLinks[index] = result;
+        onNavLinksChange();
+    }
+}
+
+function handleDeleteNavLink(index) {
+    const navLinks = appState.editor.data.navLinks;
+    const name = navLinks[index].name;
+
+    if (!window.confirm(`确定删除菜单项「${name}」吗？${navLinks[index].children && navLinks[index].children.length > 0 ? '这将同时删除其所有子菜单。' : ''}`)) {
+        return;
+    }
+
+    navLinks.splice(index, 1);
+    onNavLinksChange();
+}
+
+function onNavLinksChange() {
+    applyEditorPreview();
+}
+
+// 渲染顶部和移动端导航菜单
+function renderHeaderNav(navLinks) {
+    const headerNav = document.getElementById('headerNav');
+    const mobileMenuContent = document.getElementById('mobileMenuContent');
+
+    if (!headerNav && !mobileMenuContent) return;
+
+    const isEditMode = appState.editor.active;
+    headerNav.className = `header-nav${isEditMode ? ' editor-mode' : ''}`;
+
+    let desktopHtml = '';
+    let mobileHtml = '';
+
+    navLinks.forEach((link, index) => {
+        const itemHtml = renderHeaderNavItem(link, index, isEditMode);
+        desktopHtml += itemHtml;
+
+        // 移动端处理
+        if (link.children && link.children.length > 0) {
+            mobileHtml += `
+                <div class="mobile-menu-dropdown">
+                    <button class="mobile-menu-link" type="button">${escapeHtml(link.name)}</button>
+                    <div class="mobile-submenu">
+                        ${link.children.map(child => `
+                            <a href="${escapeHtml(child.url)}" target="${child.target || '_self'}">${escapeHtml(child.name)}</a>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            const target = link.target || '_self';
+            mobileHtml += `<a href="${escapeHtml(link.url)}" class="mobile-menu-link" target="${target}">${escapeHtml(link.name)}</a>`;
+        }
+    });
+
+    if (isEditMode) {
+        desktopHtml += `<button class="editor-add-nav-btn" data-editor-action="add-nav-link" type="button">+ 新增</button>`;
+    }
+
+    if (headerNav) headerNav.innerHTML = desktopHtml;
+    if (mobileMenuContent) mobileMenuContent.innerHTML = mobileHtml;
+}
+
+function renderHeaderNavItem(link, index, isEditMode) {
+    let html = '';
+    const hasChildren = link.children && link.children.length > 0;
+
+    if (hasChildren) {
+        html = `
+            <div class="header-dropdown">
+                <a href="#" class="header-link">${escapeHtml(link.name)}</a>
+                <div class="dropdown-menu">
+                    ${link.children.map(child => `
+                        <a href="${escapeHtml(child.url)}" target="${child.target || '_self'}">${escapeHtml(child.name)}</a>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        const target = link.target || '_self';
+        html = `<a href="${escapeHtml(link.url)}" class="header-link" target="${target}">${escapeHtml(link.name)}</a>`;
+    }
+
+    if (isEditMode) {
+        return `
+            <div class="header-link-wrapper" draggable="true" data-index="${index}">
+                <div class="header-link-actions">
+                    <button type="button" data-editor-action="edit-nav-link" data-index="${index}">编辑</button>
+                    <button type="button" data-editor-action="delete-nav-link" data-index="${index}">删除</button>
+                </div>
+                ${html}
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+function initHeaderDropdown() {
+    const headerDropdowns = document.querySelectorAll('.header-dropdown');
+
+    headerDropdowns.forEach(dropdown => {
+        const link = dropdown.querySelector('.header-link');
+        if (!link) return;
+
+        // 阻止点击下拉菜单父链接时的导航
+        link.addEventListener('click', (e) => {
+            if (dropdown.querySelector('.dropdown-menu')) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // 在点击其他地方时关闭下拉菜单
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.header-nav')) {
+            headerDropdowns.forEach(dropdown => {
+                // 下拉菜单会通过CSS :hover自动关闭，这里仅作为备选方案
+            });
+        }
+    });
+
+    // 初始化移动端菜单
+    initMobileMenu();
+}
+
+// 初始化移动端菜单
+function initMobileMenu() {
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenuPanel = document.getElementById('mobileMenuPanel');
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const mobileMenuDropdowns = document.querySelectorAll('.mobile-menu-dropdown');
+
+    if (!mobileMenuBtn || !mobileMenuPanel) return;
+
+    // 切换菜单打开/关闭状态
+    const toggleMenu = (open) => {
+        const isOpen = open !== undefined ? open : mobileMenuBtn.getAttribute('aria-expanded') === 'false';
+        mobileMenuBtn.setAttribute('aria-expanded', isOpen);
+        mobileMenuPanel.classList.toggle('active', isOpen);
+        mobileMenuOverlay.classList.toggle('active', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+
+    // 点击菜单按钮
+    mobileMenuBtn.addEventListener('click', () => {
+        toggleMenu();
+    });
+
+    // 点击覆盖层关闭菜单
+    mobileMenuOverlay.addEventListener('click', () => {
+        toggleMenu(false);
+    });
+
+    // 移动端下拉菜单交互
+    mobileMenuDropdowns.forEach(dropdown => {
+        const button = dropdown.querySelector('.mobile-menu-link');
+        const submenu = dropdown.querySelector('.mobile-submenu');
+
+        if (!button || !submenu) return;
+
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            dropdown.classList.toggle('active');
+        });
+
+        // 点击子菜单项关闭菜单
+        const submenuLinks = submenu.querySelectorAll('a');
+        submenuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                toggleMenu(false);
+            });
+        });
+    });
+
+    // 点击非下拉菜单的链接关闭菜单
+    const regularLinks = mobileMenuPanel.querySelectorAll('.mobile-menu-link:not(.mobile-menu-dropdown .mobile-menu-link)');
+    regularLinks.forEach(link => {
+        if (!link.closest('.mobile-menu-dropdown')) {
+            link.addEventListener('click', () => {
+                toggleMenu(false);
+            });
+        }
+    });
+
+    // 监听窗口大小改变，关闭菜单
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768 && mobileMenuBtn.getAttribute('aria-expanded') === 'true') {
+            toggleMenu(false);
+        }
+    });
 }

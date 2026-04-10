@@ -271,6 +271,266 @@ body {
     display: block;
 }
 
+/* 右上角头部导航链接 */
+.header-nav {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    z-index: 10;
+}
+
+.header-link {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+    padding: 4px 0;
+    position: relative;
+    white-space: nowrap;
+}
+
+.header-link:hover {
+    color: var(--primary-hover);
+}
+
+.header-link::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--text-color);
+    transition: width 0.3s ease;
+}
+
+.header-link:hover::before {
+    width: 100%;
+    background: var(--primary-hover);
+}
+
+/* 下拉菜单 */
+.header-dropdown {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.header-dropdown > .header-link::after {
+    content: '▲';
+    font-size: 0.7rem;
+    margin-left: 4px;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.header-dropdown:hover > .header-link::after {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    min-width: 120px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.3s ease;
+    z-index: 100;
+    text-align: center;
+}
+
+.header-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 10px 12px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-menu a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-menu a:hover {
+    background: rgba(var(--primary-rgb), 0.08);
+    color: var(--primary-hover);
+}
+
+/* 移动端汉堡菜单按钮（桌面端隐藏） */
+.mobile-menu-btn {
+    display: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    overflow: visible;
+}
+
+.hamburger {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text-color);
+    border-radius: 1px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+}
+
+.mobile-menu-btn[aria-expanded="true"] .hamburger:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.mobile-menu-btn[aria-expanded="true"] .hamburger:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-btn[aria-expanded="true"] .hamburger:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* 移动端菜单覆盖层 */
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-menu-overlay.active {
+    opacity: 1;
+}
+
+/* 移动端菜单面板 */
+.mobile-menu-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;
+    height: 100vh;
+    background: var(--card-bg);
+    z-index: 45;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-panel.active {
+    transform: translateX(0);
+}
+
+.mobile-menu-content {
+    padding: 60px 0 20px 0;
+}
+
+.mobile-menu-link {
+    display: block;
+    width: 100%;
+    padding: 15px 20px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.mobile-menu-link:hover {
+    background: rgba(var(--primary-rgb), 0.08);
+    color: var(--primary-hover);
+}
+
+/* 移动端下拉菜单 */
+.mobile-menu-dropdown .mobile-menu-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mobile-menu-dropdown .mobile-menu-link::after {
+    content: '▲';
+    font-size: 0.7rem;
+    transition: transform 0.3s ease;
+}
+
+.mobile-menu-dropdown.active .mobile-menu-link::after {
+    transform: rotate(180deg);
+}
+
+.mobile-submenu {
+    display: none;
+    background: rgba(var(--primary-rgb), 0.05);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.mobile-menu-dropdown.active .mobile-submenu {
+    display: block;
+    max-height: 500px;
+}
+
+.mobile-submenu a {
+    display: block;
+    padding: 12px 20px 12px 40px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.mobile-submenu a:last-child {
+    border-bottom: none;
+}
+
+.mobile-submenu a:hover {
+    background: rgba(var(--primary-rgb), 0.08);
+    color: var(--primary-hover);
+}
+
 /* 搜索区域（选项卡+搜索框一体化） */
 .search-wrapper {
     max-width: 600px;
@@ -765,6 +1025,28 @@ body {
 @media (max-width: 768px) {
     .footer-dot {
         display: none;
+    }
+
+    /* 移动端显示汉堡菜单，position:fixed 确保在菜单面板之上 */
+    .mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        top: 10px;
+        right: 15px;
+    }
+
+    /* 移动端隐藏桌面菜单 */
+    .header-nav {
+        display: none;
+    }
+
+    /* 移动端显示菜单面板 */
+    .mobile-menu-panel {
+        display: block;
+    }
+
+    .mobile-menu-overlay {
+        display: block;
     }
 }
 
@@ -1336,14 +1618,19 @@ body.editor-modal-open {
 
 .editor-modal-fields {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .editor-modal-field {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    width: 100%; /* 默认全宽 */
+}
+
+.editor-modal-field.is-half {
+    width: calc(50% - 6px); /* 半宽，减去间距的一半 */
 }
 
 .editor-modal-field-label {
@@ -1516,4 +1803,181 @@ body.editor-modal-open {
     .editor-panel {
         display: none !important;
     }
+}
+
+/* 编辑器 - 顶部导航菜单内联编辑样式 */
+.header-nav.editor-mode {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-link-wrapper {
+    position: relative;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+}
+
+.header-link-wrapper:active {
+    cursor: grabbing;
+}
+
+/* 编辑模式下禁用链接跳转和高亮效果 */
+.header-nav.editor-mode .header-link {
+    cursor: grab !important;
+    pointer-events: none; /* 禁用链接跳转 */
+}
+
+/* 编辑模式下禁用下拉菜单弹出 */
+.header-nav.editor-mode .header-dropdown:hover .dropdown-menu {
+    display: none !important;
+}
+
+.header-link-wrapper.is-drag-over {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.header-link-actions {
+    position: absolute;
+    bottom: -28px; /* 改为显示在下方 */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    background: var(--primary-color);
+    padding: 2px 5px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    transition-delay: 0.05s; /* 增加微小延迟，配合桥梁层让操作更从容 */
+    z-index: 1005;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 增加一个隐形的“桥梁”层，防止鼠标移动到按钮过程中因为间隙导致消失 */
+.header-link-actions::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 10px; /* 覆盖链接和按钮之间的空隙 */
+}
+
+.header-link-actions::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 4px;
+    border-style: solid;
+    border-color: transparent transparent var(--primary-color) transparent;
+}
+
+.header-link-wrapper:hover .header-link-actions {
+    opacity: 1;
+    pointer-events: auto;
+    bottom: -32px;
+}
+
+.header-link-actions button {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    cursor: pointer !important;
+    height: auto !important;
+    min-width: 0 !important;
+    white-space: nowrap;
+    border-radius: 2px;
+}
+
+.header-link-actions button:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.editor-add-nav-btn {
+    border: 1px dashed rgba(var(--primary-rgb), 0.5);
+    border-radius: 6px;
+    background: rgba(var(--primary-rgb), 0.08);
+    color: var(--primary-color);
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 子菜单列表编辑器样式 */
+.submenu-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.submenu-editor-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.02);
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.submenu-drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 0 2px;
+}
+
+.submenu-editor-item input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+}
+
+.submenu-editor-item select {
+    width: 80px;
+    padding: 4px 4px !important;
+    font-size: 12px !important;
+}
+
+.submenu-editor-item .delete-btn {
+    color: #ff4d4f;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submenu-add-btn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 6px;
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--primary-color);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.submenu-add-btn:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--primary-color);
 }

@@ -1,5 +1,14 @@
 {
   "siteName": "默默导航",
+  "navLinks": [
+    { "name": "官方网站", "url": "https://ihcll.cn", "target": "_blank" },
+    {
+      "name": "演示项目",
+      "children": [
+        { "name": "GitHub 仓库", "url": "https://github.com/hcllmsx/momo-nav", "target": "_blank" }
+      ]
+    }
+  ],
   "footerName": "默默导航",
   "siteDescription": "这里是一个导航网站的描述文字",
   "siteKeywords": "默默导航,莫莫导航,导航,书签,起始页",
