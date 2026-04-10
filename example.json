@@ -1,17 +1,25 @@
 {
   "siteName": "默默导航",
   "navLinks": [
-    { "name": "官方网站", "url": "https://ihcll.cn", "target": "_blank" },
+    {
+      "name": "莫莫先生",
+      "url": "https://ihcll.cn",
+      "target": "_blank"
+    },
     {
       "name": "演示项目",
       "children": [
-        { "name": "GitHub 仓库", "url": "https://github.com/hcllmsx/momo-nav", "target": "_blank" }
+        {
+          "name": "momo-nav 仓库",
+          "url": "https://github.com/hcllmsx/momo-nav",
+          "target": "_blank"
+        }
       ]
     }
   ],
   "footerName": "默默导航",
   "siteDescription": "这里是一个导航网站的描述文字",
-  "siteKeywords": "默默导航,莫莫导航,导航,书签,起始页",
+  "siteKeywords": "默默导航,收藏夹,书签,起始页",
   "favicon": "mn-src/momonav-icon.svg",
   "webAppIcons": {
     "appleTouchIcon": "mn-src/momonav-icon-180px.png",
@@ -39,7 +47,7 @@
       "items": [
         {
           "name": "默默导航",
-          "url": "https://momo-nav.msx.cc.cd",
+          "url": "https://123.ihcll.cn",
           "title": "默默导航演示站点",
           "keywords": "mm"
         }
@@ -58,7 +66,10 @@
           "name": "GitHub",
           "url": "https://github.com",
           "title": "代码托管平台",
-          "keywords": ["仓库","gayhub"],
+          "keywords": [
+            "仓库",
+            "gayhub"
+          ],
           "icon": "https://api.iconify.design/mdi:github.svg"
         }
       ]
