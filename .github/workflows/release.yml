@@ -24,7 +24,7 @@ jobs:
       - name: Package Vercel Version (With Scripts)
         run: |
           # 制作 Vercel 专用版：包含 vercel.json 和 scripts 文件夹
-          zip -r "momo-nav-vercel-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
+          zip -r "momo-nav-vercel-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
 
       - name: Package Standard Version (Clean)
         run: |
@@ -40,7 +40,7 @@ jobs:
           
           # 进入临时目录打包，输出到原始目录
           cd $TEMP_DIR
-          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
+          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
           cd $GITHUB_WORKSPACE
           rm -rf $TEMP_DIR
 

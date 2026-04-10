@@ -7,8 +7,11 @@ const appState = {
     hasIconfontConfig: false,
 };
 
+// 暴露状态到全局，供自定义功能使用
+window.appState = appState;
+
 // 应用程序版本号
-const APP_VERSION = '2026.04.10.1757';
+const APP_VERSION = '2026.04.11.0005';
 
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
@@ -600,6 +603,56 @@ async function applySiteConfig(data) {
     if (keywordsSet.size > 0) {
         const metaKeywords = document.getElementById('metaKeywords');
         if (metaKeywords) metaKeywords.content = Array.from(keywordsSet).join(',');
+    }
+
+    // 3. 加载自定义资源 (Custom Features Hook)
+    if (data.customFeatures) {
+        console.log('检测到自定义资源配置，准备加载...', data.customFeatures);
+        loadCustomFeatures(data.customFeatures);
+    }
+}
+
+/**
+ * 动态加载自定义样式和脚本 (Custom Features Hook)
+ * @param {Object} customConfig - 自定义属性配置对象
+ */
+function loadCustomFeatures(customConfig) {
+    if (!customConfig || typeof customConfig !== 'object') return;
+
+    const { styles, scripts } = customConfig;
+
+    // 动态加载 CSS
+    if (Array.isArray(styles)) {
+        styles.forEach(href => {
+            const h = String(href).trim();
+            if (!h) return;
+
+            const versionedHref = h.includes('?') ? `${h}&v=${APP_VERSION}` : `${h}?v=${APP_VERSION}`;
+            if (document.querySelector(`link[href="${versionedHref}"]`)) return;
+
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = versionedHref;
+            link.dataset.customAsset = 'true';
+            document.head.appendChild(link);
+        });
+    }
+
+    // 动态加载 JS
+    if (Array.isArray(scripts)) {
+        scripts.forEach(src => {
+            const s = String(src).trim();
+            if (!s) return;
+
+            const versionedSrc = s.includes('?') ? `${s}&v=${APP_VERSION}` : `${s}?v=${APP_VERSION}`;
+            if (document.querySelector(`script[src="${versionedSrc}"]`)) return;
+
+            const script = document.createElement('script');
+            script.src = versionedSrc;
+            script.dataset.customAsset = 'true';
+            script.async = true;
+            document.body.appendChild(script);
+        });
     }
 }
 
@@ -1844,7 +1897,14 @@ function buildConfigFromEditorState() {
     }
 
     if (editorData.navLinks) {
-        output.navLinks = deepClone(editorData.navLinks);
+        // 克隆并清洗：移除空的 children 数组
+        output.navLinks = deepClone(editorData.navLinks).map(link => {
+            if (Array.isArray(link.children) && link.children.length === 0) {
+                const { children, ...rest } = link;
+                return rest;
+            }
+            return link;
+        });
     }
 
     output.categories = sanitizeCategoriesFromEditor(editorData.categories);
@@ -3187,7 +3247,12 @@ function buildSiteManifestFromConfig(config) {
 }
 
 function exportEditorConfig() {
-    const payload = buildConfigFromEditorState();
+    const editorState = buildConfigFromEditorState();
+    // 合并保留的额外数据，确保 customFeatures 等字段被导出
+    const payload = {
+        ...editorState,
+        ...(appState.extraData || {})
+    };
     downloadJsonFile('momo-nav.json', payload);
 }
 
@@ -3235,6 +3300,23 @@ async function loadData() {
 
         const usedDraft = applyEditorDraftState(fileData);
         appState.navData = buildConfigFromEditorState();
+
+        // --- 核心修复：自动识别并保留所有非标准扩展字段 (如 customFeatures, toolbox 等) ---
+        appState.extraData = {};
+        const standardKeys = ['siteName', 'footerName', 'siteDescription', 'siteKeywords', 'logo', 'background', 'theme', 'iconfont', 'fontawesome', 'webAppIcons', 'navLinks', 'categories', 'cover'];
+        Object.keys(fileData).forEach(key => {
+            if (!standardKeys.includes(key)) {
+                appState.extraData[key] = fileData[key];
+                // 同时也挂载到 navData 上供前端脚本实时使用 (比如 customFeatures)
+                appState.navData[key] = fileData[key];
+            }
+        });
+
+        // 加载自定义功能并发布就绪事件
+        if (appState.navData.customFeatures && typeof loadCustomFeatures === 'function') {
+            loadCustomFeatures(appState.navData.customFeatures);
+        }
+        window.dispatchEvent(new CustomEvent('momo-nav-ready', { detail: appState.navData }));
 
         console.log(`导航数据加载成功（来源: ${usedDraft ? 'localStorage 草稿' : loadedFrom}），分类数:`, (appState.navData.categories || []).length);
 
@@ -3581,7 +3663,7 @@ async function handleAddNavLink() {
             { name: 'name', label: '菜单名称', type: 'text', value: '', required: true, width: 'half' },
             {
                 name: 'target', label: '打开方式', type: 'select', value: '_self', width: 'half', options: [
-                    { value: '_self', text: '新窗口(_self)' },
+                    { value: '_self', text: '当前窗口(_self)' },
                     { value: '_blank', text: '新窗口(_blank)' }
                 ]
             },
@@ -3608,7 +3690,7 @@ async function handleEditNavLink(index) {
             { name: 'name', label: '菜单名称', type: 'text', value: link.name || '', required: true, width: 'half' },
             {
                 name: 'target', label: '打开方式', type: 'select', value: link.target || '_self', width: 'half', options: [
-                    { value: '_self', text: '新窗口(_self)' },
+                    { value: '_self', text: '当前窗口(_self)' },
                     { value: '_blank', text: '新窗口(_blank)' }
                 ]
             },
@@ -3770,7 +3852,7 @@ function initMobileMenu() {
         mobileMenuBtn.setAttribute('aria-expanded', isOpen);
         mobileMenuPanel.classList.toggle('active', isOpen);
         mobileMenuOverlay.classList.toggle('active', isOpen);
-        
+
         // 同时锁定 html 和 body，防止移动端穿透滚动
         const overflowStyle = isOpen ? 'hidden' : '';
         document.body.style.overflow = overflowStyle;
