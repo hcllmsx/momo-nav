@@ -18,13 +18,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set Release Name
-        run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Package Vercel Version (With Scripts)
         run: |
           # 制作 Vercel 专用版：包含 vercel.json 和 scripts 文件夹
-          zip -r "momo-nav-vercel-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
+          zip -r "momo-nav-vercel-${{ github.ref_name }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
 
       - name: Package Standard Version (Clean)
         run: |
@@ -40,7 +38,7 @@ jobs:
           
           # 进入临时目录打包，输出到原始目录
           cd $TEMP_DIR
-          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
+          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ github.ref_name }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
           cd $GITHUB_WORKSPACE
           rm -rf $TEMP_DIR
 
@@ -48,18 +46,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            momo-nav-${{ env.TAG_NAME }}.zip
-            momo-nav-vercel-${{ env.TAG_NAME }}.zip
+            momo-nav-${{ github.ref_name }}.zip
+            momo-nav-vercel-${{ github.ref_name }}.zip
           body: |
             ## 🚀 版本说明 / Release Notes
             
             此版本提供了两种预打包方案：
             
-            1. **momo-nav-${{ env.TAG_NAME }}.zip (标准版)**
+            1. **momo-nav-${{ github.ref_name }}.zip (标准版)**
                - 移除了 `vercel.json`、`scripts/` 目录以及示例文件。
                - 结构清爽，适合作为 Hugo 博客附件、Git 子模块或传统静态服务器部署。
             
-            2. **momo-nav-vercel-${{ env.TAG_NAME }}.zip (Vercel 版)**
+            2. **momo-nav-vercel-${{ github.ref_name }}.zip (Vercel 版)**
                - 保留了 `vercel.json` 及全套部署脚本。
                - 适合需要利用 Vercel Blob 存储或特定 Vercel 后端功能的用户。
             
