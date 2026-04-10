@@ -22,19 +22,21 @@ jobs:
 
       - name: Package Standard Version (Clean)
         run: |
-          # 制作标准版：精简掉 vercel 相关文件
-          mkdir temp_std
-          cp -r . temp_std/
+          # 制作标准版：在工作目录外创建临时空间，防止递归拷贝
+          TEMP_DIR="../temp_std_build"
+          mkdir -p $TEMP_DIR
+          cp -r . $TEMP_DIR/
           
           # 移除特定的 Vercel 配置文件及相关脚本
-          rm -rf temp_std/vercel.json
-          rm -rf temp_std/scripts
-          rm -rf temp_std/example.json
+          rm -rf $TEMP_DIR/vercel.json
+          rm -rf $TEMP_DIR/scripts
+          rm -rf $TEMP_DIR/example.json
           
-          cd temp_std
-          zip -r "../momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
-          cd ..
-          rm -rf temp_std
+          # 进入临时目录打包，输出到原始目录
+          cd $TEMP_DIR
+          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
+          cd $GITHUB_WORKSPACE
+          rm -rf $TEMP_DIR
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
