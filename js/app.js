@@ -7,6 +7,9 @@ const appState = {
     hasIconfontConfig: false,
 };
 
+// 应用程序版本号
+const APP_VERSION = '2026.04.10.1757';
+
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
 
@@ -350,6 +353,12 @@ async function applySiteConfig(data) {
         const footerSiteName = document.getElementById('footerSiteName');
         if (footerSiteName) {
             footerSiteName.textContent = data.footerName || data.siteName || '默默导航';
+        }
+
+        // 设置页脚项目链接的版本提示
+        const footerLink = document.querySelector('.footer a');
+        if (footerLink) {
+            footerLink.title = `版本: ${APP_VERSION}`;
         }
     }
 
@@ -3670,7 +3679,17 @@ function renderHeaderNav(navLinks) {
     }
 
     if (headerNav) headerNav.innerHTML = desktopHtml;
-    if (mobileMenuContent) mobileMenuContent.innerHTML = mobileHtml;
+    if (mobileMenuContent) {
+        mobileMenuContent.innerHTML = `
+            <div class="mobile-menu-items">
+                ${mobileHtml}
+            </div>
+            <div class="mobile-menu-footer">
+                <a href="https://github.com/hcllmsx/momo-nav" target="_blank">MOMO-NAV</a>
+                <div class="mobile-version-text">版本: ${APP_VERSION}</div>
+            </div>
+        `;
+    }
 }
 
 function renderHeaderNavItem(link, index, isEditMode) {

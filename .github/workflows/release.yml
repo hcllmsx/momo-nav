@@ -1,0 +1,63 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Release Name
+        run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Package Vercel Version (With Scripts)
+        run: |
+          # 制作 Vercel 专用版：包含 vercel.json 和 scripts 文件夹
+          zip -r "momo-nav-vercel-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
+
+      - name: Package Standard Version (Clean)
+        run: |
+          # 制作标准版：精简掉 vercel 相关文件
+          mkdir temp_std
+          cp -r . temp_std/
+          
+          # 移除特定的 Vercel 配置文件及相关脚本
+          rm -rf temp_std/vercel.json
+          rm -rf temp_std/scripts
+          rm -rf temp_std/example.json
+          
+          cd temp_std
+          zip -r "../momo-nav-${{ env.TAG_NAME }}.zip" . -x ".git/*" ".github/*" ".gitignore"
+          cd ..
+          rm -rf temp_std
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            momo-nav-${{ env.TAG_NAME }}.zip
+            momo-nav-vercel-${{ env.TAG_NAME }}.zip
+          body: |
+            ## 🚀 版本说明 / Release Notes
+            
+            此版本提供了两种预打包方案：
+            
+            1. **momo-nav-${{ env.TAG_NAME }}.zip (标准版)**
+               - 移除了 `vercel.json`、`scripts/` 目录以及示例文件。
+               - 结构清爽，适合作为 Hugo 博客附件、Git 子模块或传统静态服务器部署。
+            
+            2. **momo-nav-vercel-${{ env.TAG_NAME }}.zip (Vercel 版)**
+               - 保留了 `vercel.json` 及全套部署脚本。
+               - 适合需要利用 Vercel Blob 存储或特定 Vercel 后端功能的用户。
+            
+            ---
+            *由 GitHub Actions 自动构建打包。*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
