@@ -1058,11 +1058,11 @@ body {
         display: none;
     }
 
-    /* 移动端显示汉堡菜单，position:fixed 确保在菜单面板之上 */
+    /* 移动端显示汉堡菜单，改为 position:absolute 随页面滚动 */
     .mobile-menu-btn {
         display: flex;
-        position: fixed;
-        top: 10px;
+        position: absolute;
+        top: 15px;
         right: 15px;
     }
 

@@ -3770,7 +3770,11 @@ function initMobileMenu() {
         mobileMenuBtn.setAttribute('aria-expanded', isOpen);
         mobileMenuPanel.classList.toggle('active', isOpen);
         mobileMenuOverlay.classList.toggle('active', isOpen);
-        document.body.style.overflow = isOpen ? 'hidden' : '';
+        
+        // 同时锁定 html 和 body，防止移动端穿透滚动
+        const overflowStyle = isOpen ? 'hidden' : '';
+        document.body.style.overflow = overflowStyle;
+        document.documentElement.style.overflow = overflowStyle;
     };
 
     // 点击菜单按钮
