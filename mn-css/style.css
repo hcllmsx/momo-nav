@@ -1092,15 +1092,17 @@ body.mobile-sidebar-fixed .main-layout {
 
 body.mobile-sidebar-fixed .category-sidebar {
     position: fixed;
-    top: 8px;
-    left: var(--mobile-sidebar-left, 15px);
-    width: var(--mobile-sidebar-width, calc(100% - 30px));
-    max-width: calc(100% - 30px);
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
     z-index: 40;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     background: rgba(var(--card-bg-rgb), 0.98);
+    padding: 8px 15px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -1219,7 +1221,8 @@ body.desktop-sidebar-fixed .category-sidebar {
     }
 
     .search-wrapper {
-        margin-bottom: 40px;
+        margin-top: 24px;
+        margin-bottom: 16px;
     }
 
     .search-tabs {

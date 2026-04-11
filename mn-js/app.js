@@ -11,7 +11,7 @@ const appState = {
 window.appState = appState;
 
 // 应用程序版本号
-const APP_VERSION = '2026.04.11.0913';
+const APP_VERSION = '2026.04.11.2225';
 
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
@@ -83,7 +83,7 @@ function initResponsiveCategoryStickyFallback() {
 
     let stickyStart = 0;
     let ticking = false;
-    const mobileStickyTop = 8;
+    const mobileStickyTop = 0;
     const desktopStickyTop = 20;
 
     const clearFixedState = () => {
