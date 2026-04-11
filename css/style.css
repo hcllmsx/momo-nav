@@ -431,10 +431,12 @@ body {
     z-index: 40;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .mobile-menu-overlay.active {
     opacity: 1;
+    pointer-events: auto;
 }
 
 /* 移动端菜单面板 */
@@ -451,10 +453,12 @@ body {
     transform: translateX(100%);
     transition: transform 0.3s ease;
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
 }
 
 .mobile-menu-panel.active {
     transform: translateX(0);
+    pointer-events: auto;
 }
 
 .mobile-menu-content {
