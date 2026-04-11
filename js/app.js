@@ -11,7 +11,7 @@ const appState = {
 window.appState = appState;
 
 // 应用程序版本号
-const APP_VERSION = '2026.04.11.0005';
+const APP_VERSION = '2026.04.11.0913';
 
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
@@ -2439,6 +2439,7 @@ function handleEditorPanelInputChange(event) {
     if (!fieldPath) return;
 
     setValueByPath(appState.editor.data, fieldPath, target.value);
+    updateManifestExportButtonState();
     queueEditorPreview();
 }
 
@@ -2487,6 +2488,8 @@ function syncEditorFormFromState() {
         checkbox.checked = Boolean(appState.editor.colorToggles[path]);
         updateColorFieldReadonlyState(path);
     });
+
+    updateManifestExportButtonState();
 
     appState.editor.syncFormLocked = false;
 
@@ -2567,6 +2570,41 @@ function updateColorFieldReadonlyState(colorPath) {
     const colorFieldRow = colorInput.closest('.editor-color-field');
     if (colorFieldRow) {
         colorFieldRow.classList.toggle('is-disabled', !shouldEnable);
+    }
+}
+
+/**
+ * 更新导出 Manifest 按钮的状态（校验必要条件）
+ */
+function updateManifestExportButtonState() {
+    const panel = appState.editor.panelEl;
+    if (!panel) return;
+
+    const btn = panel.querySelector('[data-editor-action="export-manifest"]');
+    if (!btn) return;
+
+    const data = appState.editor.data || {};
+    const siteName = trimToString(data.siteName);
+    const icons = data.webAppIcons || {};
+    const icon192 = trimToString(icons.icon192);
+    const icon512 = trimToString(icons.icon512);
+
+    const missing = [];
+    if (!siteName) missing.push('网站名称 (siteName)');
+    if (!icon192) missing.push('192px 图标 (webAppIcons.icon192)');
+    if (!icon512) missing.push('512px 图标 (webAppIcons.icon512)');
+
+    const isValid = missing.length === 0;
+    btn.disabled = !isValid;
+
+    if (isValid) {
+        btn.title = '导出 site.webmanifest 文件';
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+    } else {
+        btn.title = `请先配置以下必要信息以导出清单文件：\n- ${missing.join('\n- ')}`;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
     }
 }
 
