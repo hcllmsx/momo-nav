@@ -5,10 +5,6 @@ on:
     tags:
       - 'v*'
 
-env:
-  # 提前启用 Node.js 24 以消除 Node.js 20 的弃用警告
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,34 +12,21 @@ jobs:
       contents: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+
+      - name: Package Standard Version (Clean)
+        run: |
+          # 制作标准版：直接打包并排除 Vercel 特有文件和目录
+          zip -r "momo-nav-${{ github.ref_name }}.zip" . -x "vercel.json" "scripts/*" ".git/*" ".github/*" ".gitignore" "*.zip"
 
       - name: Package Vercel Version (With Scripts)
         run: |
           # 制作 Vercel 专用版：包含 vercel.json 和 scripts 文件夹
           zip -r "momo-nav-vercel-${{ github.ref_name }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
 
-      - name: Package Standard Version (Clean)
-        run: |
-          # 制作标准版：在工作目录外创建临时空间，防止递归拷贝
-          TEMP_DIR="../temp_std_build"
-          mkdir -p $TEMP_DIR
-          cp -r . $TEMP_DIR/
-          
-          # 移除特定的 Vercel 配置文件及相关脚本
-          rm -rf $TEMP_DIR/vercel.json
-          rm -rf $TEMP_DIR/scripts
-          rm -rf $TEMP_DIR/example.json
-          
-          # 进入临时目录打包，输出到原始目录
-          cd $TEMP_DIR
-          zip -r "$GITHUB_WORKSPACE/momo-nav-${{ github.ref_name }}.zip" . -x ".git/*" ".github/*" ".gitignore" "*.zip"
-          cd $GITHUB_WORKSPACE
-          rm -rf $TEMP_DIR
-
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: step-security/action-gh-release@v2
         with:
           files: |
             momo-nav-${{ github.ref_name }}.zip
@@ -51,18 +34,17 @@ jobs:
           body: |
             ## 🚀 版本说明 / Release Notes
             
-            此版本提供了两种预打包方案：
+            此版本提供了两种预打包方案，请根据您的部署需求选择：
             
-            1. **momo-nav-${{ github.ref_name }}.zip (标准版)**
-               - 移除了 `vercel.json`、`scripts/` 目录以及示例文件。
-               - 结构清爽，适合作为 Hugo 博客附件、Git 子模块或传统静态服务器部署。
+            ### 1. **momo-nav-${{ github.ref_name }}.zip (标准版 / Standard)**
+            - 一般用这个就足够了。
             
-            2. **momo-nav-vercel-${{ github.ref_name }}.zip (Vercel 版)**
-               - 保留了 `vercel.json` 及全套部署脚本。
-               - 适合需要利用 Vercel Blob 存储或特定 Vercel 后端功能的用户。
+            ### 2. **momo-nav-vercel-${{ github.ref_name }}.zip (Vercel 版)**
+            - 如果你想要整活儿用于测试，需要使用 Vercel 的 Blob 存储等功能，就用这个版本。
+            - 这是一个费力不讨好的版本，不推荐使用。
             
             ---
-            *由 GitHub Actions 自动构建打包。*
+            *由 GitHub Actions 自动构建，确保构建环境一致性。*
           draft: false
           prerelease: false
         env:
