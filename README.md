@@ -58,6 +58,19 @@ Demo：https://momo-nav.msx.cc.cd/
 
 编辑模式底部还支持一键导出 `site.webmanifest`（用于移动端“添加到主屏幕”图标与主题色）。
 
+### 💡 编辑器辅助：纠正功能
+
+在 Ctrl+F9 编辑模式下，所有路径类输入框（如图标、Logo、封面等）右侧都有一个 **“纠正”** 按钮。它可以一键处理以下常见错误：
+
+-   **清理 Font Awesome 标签**: 
+    如果你直接从官网复制了 `<i class="fa-solid fa-star"></i>`，点击纠正会提取出 `fa-solid fa-star`。
+-   **修复 Windows 路径**: 
+    自动将反斜杠 `\` 转换为 Web 通用的正斜杠 `/`。
+-   **智能截断绝对路径**: 
+    如果你复制了本地电脑的全路径（如 `D:\Nav\other-favicon\icon.svg`），系统会识别项目内的特征文件夹（如 `other-favicon/`, `mn-src/`, `assets/` 等）并自动截断多余的本地路径，将其变为相对于根目录的路径（如 `/other-favicon/icon.svg`）。
+-   **补全路径前缀**: 
+    自动为相对路径补齐开头的 `/`，确保路径在任何情况下都能被正确识别为 URL。
+
 ## 🧩 自定义扩展钩子 (Custom Features)
 
 核心引擎支持在 `momo-nav.json` 中通过 `customFeatures` 字段动态注入样式和脚本，实现在不修改核心代码的情况下扩展功能。

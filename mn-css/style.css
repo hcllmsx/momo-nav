@@ -1691,6 +1691,39 @@ body.editor-modal-open {
     /* 默认全宽 */
 }
 
+/* 带有纠正按钮的输入框容器 */
+.editor-field-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.editor-field-wrapper input {
+    padding-right: 48px !important; /* 预留按钮空间 */
+}
+
+.editor-field-fix-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary-color);
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    user-select: none;
+    line-height: 1.6;
+}
+
+.editor-field-fix-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
 .editor-modal-field.is-half {
     width: calc(50% - 6px);
     /* 半宽，减去间距的一半 */

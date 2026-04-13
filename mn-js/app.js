@@ -1,5 +1,8 @@
 // 默默导航 - 主逻辑脚本
 
+// 应用程序版本号
+const APP_VERSION = '2026.04.13.1335';
+
 // 全局应用状态，避免过多全局变量
 const appState = {
     navData: null,
@@ -11,8 +14,79 @@ const appState = {
 // 暴露状态到全局，供自定义功能使用
 window.appState = appState;
 
-// 应用程序版本号
-const APP_VERSION = '2026.04.13.0956';
+// 图标纠正工具函数
+function correctIconValue(value) {
+    if (!value) return value;
+    let v = String(value).trim();
+
+    // 1. 处理 Font Awesome HTML 标签 (如 <i class="fa fa-star"></i>)
+    const faMatch = v.match(/class=["']([^"']+)["']/i);
+    if (faMatch && (v.startsWith('<i') || v.startsWith('<span'))) {
+        v = faMatch[1];
+    }
+
+    // 2. 处理 Windows 路径 \ 为 /
+    v = v.replace(/\\/g, '/');
+
+    // 3. 处理本地绝对路径 (增强版识别)
+    const anchors = ['other-favicon/', 'mn-src/', 'mn-js/', 'mn-css/', 'tools/', 'assets/', 'icons/', 'img/', 'public/'];
+    let anchorFound = false;
+    for (const anchor of anchors) {
+        const idx = v.toLowerCase().indexOf(anchor);
+        if (idx !== -1) {
+            v = v.substring(idx);
+            anchorFound = true;
+            break;
+        }
+    }
+
+    // 兜底：如果是 Windows 绝对路径且没匹配到特征文件夹
+    if (!anchorFound && /^[a-zA-Z]:\//.test(v)) {
+        // 去掉盘符 (如 D:/)
+        v = v.substring(3);
+        // 尝试保留最后两级 (如 "my-project/icon.png")，这通常是 web 根目录下的结构
+        const parts = v.split('/');
+        if (parts.length > 2) {
+            v = parts.slice(-2).join('/');
+        }
+    }
+
+    // 4. 路径规范化：如果是路径样式且没加 /，则补齐
+    if (!v.startsWith('http') && !v.startsWith('/') && !v.startsWith('./')) {
+        if (v.includes('/') || /\.(png|jpg|jpeg|gif|svg|ico|webp|js)$/i.test(v)) {
+            v = '/' + v;
+        }
+    }
+
+    return v;
+}
+
+// 供面板使用的包装函数
+function wrapInputWithFixBtn(input) {
+    if (!input || input.parentElement.classList.contains('editor-field-wrapper')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'editor-field-wrapper';
+
+    // 将 input 放入 wrapper
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    const fixBtn = document.createElement('button');
+    fixBtn.type = 'button';
+    fixBtn.className = 'editor-field-fix-btn';
+    fixBtn.textContent = '纠正';
+    fixBtn.onclick = (e) => {
+        e.preventDefault();
+        const corrected = correctIconValue(input.value);
+        if (corrected !== input.value) {
+            input.value = corrected;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
+    wrapper.appendChild(fixBtn);
+}
 
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
@@ -936,7 +1010,7 @@ function getIconHtml(icon) {
     const chars = Array.from(icon);
     const isLong = chars.length >= 2;
     const displayText = chars.slice(0, 2).join('');
-    
+
     return `<span class="icon-text ${isLong ? 'is-small' : ''}">${escapeHtml(displayText)}</span>`;
 }
 
@@ -2201,6 +2275,17 @@ function initEditorUi() {
 
         // 初始化动态 placeholder
         initDynamicPlaceholders();
+
+        // 为面板中的路径类字段增加纠正按钮
+        const fixPaths = [
+            'editorFieldFavicon', 'editorFieldAppleTouchIcon', 'editorFieldWebIcon192', 'editorFieldWebIcon512',
+            'editorFieldLogoImg', 'editorFieldCoverVideo', 'editorFieldCoverImage', 'editorFieldCoverPoster',
+            'editorFieldBgTexture', 'editorFieldIconfontUrl', 'editorFieldFontawesomeUrl'
+        ];
+        fixPaths.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) wrapInputWithFixBtn(input);
+        });
     }
 
     if (!appState.editor.modalLayerEl) {
@@ -2733,7 +2818,31 @@ function openEditorModalForm(config = {}) {
                 // 延时绑定事件，确保 DOM 已插入
                 setTimeout(() => initModalSubmenuEditorActions(), 0);
             } else {
-                wrapper.appendChild(inputEl);
+                // 如果是图标字段，增加包装层和纠正按钮
+                if (field.name === 'icon') {
+                    const inputWrapper = document.createElement('div');
+                    inputWrapper.className = 'editor-field-wrapper';
+
+                    const fixBtn = document.createElement('button');
+                    fixBtn.type = 'button';
+                    fixBtn.className = 'editor-field-fix-btn';
+                    fixBtn.textContent = '纠正';
+                    fixBtn.onclick = (e) => {
+                        e.preventDefault();
+                        const corrected = correctIconValue(inputEl.value);
+                        if (corrected !== inputEl.value) {
+                            inputEl.value = corrected;
+                            // 触发一次 change 事件以更新状态
+                            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    };
+
+                    inputWrapper.appendChild(inputEl);
+                    inputWrapper.appendChild(fixBtn);
+                    wrapper.appendChild(inputWrapper);
+                } else {
+                    wrapper.appendChild(inputEl);
+                }
             }
 
             fieldsEl.appendChild(wrapper);
