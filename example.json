@@ -61,7 +61,7 @@
           "name": "默默导航GitHub",
           "url": "https://github.com/hcllmsx/momo-nav",
           "title": "默默导航GitHub仓库",
-          "icon": "imn-momonav-icon"
+          "icon": "icon-momonav-icon"
         },
         {
           "name": "GitHub",
@@ -82,7 +82,7 @@
           "name": "iconfont",
           "url": "https://www.iconfont.cn/",
           "title": "iconfont图标库",
-          "icon": "imn-iconfont"
+          "icon": "icon-iconfont"
         }
       ]
     }

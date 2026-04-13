@@ -2121,6 +2121,7 @@ function initEditorUi() {
                     <label>footerName<input type="text" data-editor-path="footerName" id="editorFieldFooterName" placeholder="例如：默默导航"></label>
                     <label>siteDescription<textarea rows="3" data-editor-path="siteDescription" id="editorFieldSiteDescription" placeholder="简单描述网站的目的和内容"></textarea></label>
                     <label>siteKeywords<input type="text" data-editor-path="siteKeywords" id="editorFieldSiteKeywords" placeholder="用逗号分隔的关键词，如：工具,资源,导航"></label>
+
                     <label>favicon<input type="text" data-editor-path="favicon" id="editorFieldFavicon" placeholder="网站图标的URL"></label>
                     <label>webAppIcons.appleTouchIcon<input type="text" data-editor-path="webAppIcons.appleTouchIcon" id="editorFieldAppleTouchIcon" placeholder="iOS 主屏图标（建议 180x180 PNG）"></label>
                     <label>webAppIcons.icon192<input type="text" data-editor-path="webAppIcons.icon192" id="editorFieldWebIcon192" placeholder="Android 图标（192x192 PNG）"></label>
@@ -2377,7 +2378,7 @@ function bindEditorGlobalEvents() {
     });
 }
 
-function handleEditorShortcut(event) {
+async function handleEditorShortcut(event) {
     if (event.defaultPrevented) return;
     if (event.key === 'Escape' && appState.editor.modalResolver) {
         event.preventDefault();
@@ -2391,6 +2392,12 @@ function handleEditorShortcut(event) {
     event.preventDefault();
     if (!isDesktopEditorViewport()) return;
 
+    // 检查密码保护
+    if (!appState.editor.launcherVisible) {
+        const verified = await verifyEditorPassword('进入编辑模式');
+        if (!verified) return;
+    }
+
     if (!appState.editor.launcherVisible) {
         appState.editor.launcherVisible = true;
         showToast('编辑模式已启用', 3000, '#e05d00');
@@ -2401,6 +2408,53 @@ function handleEditorShortcut(event) {
 
     updateEditorLauncherVisibility();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * 校验编辑器密码（如果已配置）
+ * @param {string} actionName - 当前操作名称，用于模态框标题
+ * @returns {Promise<boolean>}
+ */
+async function verifyEditorPassword(actionName) {
+    // 优先从草稿中读取密码，因为用户可能刚刚设置或修改了它
+    const currentData = appState.editor.data || appState.navData;
+    const password = trimToString(currentData.password);
+    
+    // 校验规则：6-16位字符
+    const isValid = password.length >= 6 && password.length <= 16;
+    if (!isValid) return true;
+
+    // 检查缓存
+    const CACHE_KEY = 'momo_nav_verified_pwd';
+    const cachedPwd = localStorage.getItem(CACHE_KEY);
+    if (cachedPwd === password) return true;
+
+    // 弹出校验模态框
+    const result = await openEditorModalForm({
+        title: actionName,
+        description: '此操作受密码保护，请输入配置文件中设置的密码。',
+        submitText: '验证',
+        fields: [
+            {
+                name: 'verifyPassword',
+                label: '密码',
+                type: 'password',
+                autocomplete: 'new-password',
+                required: true,
+                placeholder: '请输入密码'
+            }
+        ]
+    });
+
+    if (!result) return false;
+
+    if (result.verifyPassword === password) {
+        localStorage.setItem(CACHE_KEY, password);
+        return true;
+    } else {
+        showToast('密码错误', 3000, '#ff4d4f');
+        return false;
+    }
 }
 
 function updateEditorLauncherLabel() {
@@ -2798,6 +2852,14 @@ function openEditorModalForm(config = {}) {
             } else {
                 inputEl = document.createElement('input');
                 inputEl.type = trimToString(field.type) || 'text';
+                // 针对密码字段，禁用浏览器自动保存/填充建议
+                if (inputEl.type === 'password') {
+                    inputEl.autocomplete = 'new-password';
+                }
+            }
+
+            if (field.autocomplete) {
+                inputEl.autocomplete = field.autocomplete;
             }
 
             inputEl.name = name;
@@ -3421,7 +3483,10 @@ function buildSiteManifestFromConfig(config) {
     };
 }
 
-function exportEditorConfig() {
+async function exportEditorConfig() {
+    const verified = await verifyEditorPassword('导出配置文件');
+    if (!verified) return;
+
     const editorState = buildConfigFromEditorState();
     // 合并保留的额外数据，确保 customFeatures 等字段被导出
     const payload = {
