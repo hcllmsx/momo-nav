@@ -14,38 +14,6 @@
 - 📱 **主屏图标支持** - 支持 iOS/Android 添加到主屏幕图标配置
 - 🛠️ **自定义扩展钩子** - 支持通过配置动态加载外部 CSS/JS 插件
 
-## 🧩 自定义扩展钩子 (Custom Features)
-
-核心引擎支持在 `momo-nav.json` 中通过 `customFeatures` 字段动态注入样式和脚本，实现在不修改核心代码的情况下扩展功能。
-
-### 配置方案
-在 `momo-nav.json` 中按需添加：
-```json
-{
-  "customFeatures": {
-    "styles": ["tools/tools-panel.css"],
-    "scripts": ["tools/tools-panel.js"]
-  }
-}
-```
-
-### 适用场景
-- **私有功能扩展**：在不污染核心逻辑的前提下，添加如“工具箱”、评论系统或站点统计。
-- **样式个性化**：通过外部 CSS 文件覆盖默认样式，实现深度 UI 定制。
-- **第三方脚本注入**：集成在线客服、广告等第三方服务。
-
-### 接入规范与技术细节
-1. **加载机制**：CSS 通过 `link` 标签同步注入，JS 通过 `script` 标签异步（`async`）注入。
-2. **加载时机**：引擎会在 `momo-nav.json` 加载完成后立即触发注入，确保功能准备就绪。
-3. **事件同步**：扩展脚本应监听 `momo-nav-ready` 事件以获取完整的配置数据：
-   ```javascript
-   window.addEventListener('momo-nav-ready', (e) => {
-       const data = e.detail; // 这里是原始导航配置对象
-       // 初始化您的功能逻辑...
-   });
-   ```
-4. **防止冗余**：引擎会自动检查资源路径，避免重复加载。
-
 ## 🚀 快速开始
 
 1. **编辑链接**：打开 `momo-nav.json` 文件，按格式添加你的网站
@@ -85,6 +53,38 @@
 编辑好了之后导出`momo-nav.json`配置，替换掉原来的即可。不替换的话只是临时保存哦！
 
 编辑模式底部还支持一键导出 `site.webmanifest`（用于移动端“添加到主屏幕”图标与主题色）。
+
+## 🧩 自定义扩展钩子 (Custom Features)
+
+核心引擎支持在 `momo-nav.json` 中通过 `customFeatures` 字段动态注入样式和脚本，实现在不修改核心代码的情况下扩展功能。
+
+### 配置方案
+在 `momo-nav.json` 中按需添加：
+```json
+{
+  "customFeatures": {
+    "styles": ["tools/tools-panel.css"],
+    "scripts": ["tools/tools-panel.js"]
+  }
+}
+```
+
+### 适用场景
+- **私有功能扩展**：在不污染核心逻辑的前提下，添加如“工具箱”、评论系统或站点统计。
+- **样式个性化**：通过外部 CSS 文件覆盖默认样式，实现深度 UI 定制。
+- **第三方脚本注入**：集成在线客服、广告等第三方服务。
+
+### 接入规范与技术细节
+1. **加载机制**：CSS 通过 `link` 标签同步注入，JS 通过 `script` 标签异步（`async`）注入。
+2. **加载时机**：引擎会在 `momo-nav.json` 加载完成后立即触发注入，确保功能准备就绪。
+3. **事件同步**：扩展脚本应监听 `momo-nav-ready` 事件以获取完整的配置数据：
+   ```javascript
+   window.addEventListener('momo-nav-ready', (e) => {
+       const data = e.detail; // 这里是原始导航配置对象
+       // 初始化您的功能逻辑...
+   });
+   ```
+4. **防止冗余**：引擎会自动检查资源路径，避免重复加载。
 
 ## 📝 完整配置说明
 
