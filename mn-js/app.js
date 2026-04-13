@@ -5,13 +5,14 @@ const appState = {
     navData: null,
     iconfontLoaded: false,
     hasIconfontConfig: false,
+    iconfontPrefix: 'icon-',
 };
 
 // 暴露状态到全局，供自定义功能使用
 window.appState = appState;
 
 // 应用程序版本号
-const APP_VERSION = '2026.04.11.2225';
+const APP_VERSION = '2026.04.13.0956';
 
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
@@ -189,6 +190,7 @@ async function loadData() {
         // 加载 Iconfont
         if (appState.navData.iconfont) {
             appState.hasIconfontConfig = true;
+            appState.iconfontPrefix = trimToString(appState.navData.iconfont.prefix) || 'icon-';
             await loadIconfont(appState.navData.iconfont);
         }
 
@@ -892,11 +894,19 @@ function isImageFile(icon) {
 // 统一默认图标（带灰度滤镜）
 const DEFAULT_ICON_HTML = `<img src="mn-src/momonav-icon.svg" alt="icon" style="filter: grayscale(100%) brightness(0.7)">`;
 
+function isIconfontIcon(icon) {
+    if (!appState.hasIconfontConfig) return false;
+    const prefix = appState.iconfontPrefix;
+    // 支持 "imn-xxx" 和 "#imn-xxx" 两种写法
+    return icon.startsWith(prefix) || icon.startsWith('#' + prefix);
+}
+
 function getIconHtml(icon) {
     if (!icon) {
         return DEFAULT_ICON_HTML;
     }
 
+    // 1. URL 类图标 (http:// https:// /path)
     if (isIconUrl(icon)) {
         if (icon.includes('iconify')) {
             return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.src='mn-src/momonav-icon.svg'; this.style.filter='grayscale(100%) brightness(0.7)'">`;
@@ -906,20 +916,32 @@ function getIconHtml(icon) {
         }
     }
 
-    if (appState.hasIconfontConfig && !isIconUrl(icon) && !icon.startsWith('#')) {
-        return `<svg class="iconfont-symbol" aria-hidden="true"><use xlink:href="#${escapeHtml(icon)}"></use></svg>`;
+    // 2. Iconfont 符号（必须匹配指定前缀）
+    if (isIconfontIcon(icon)) {
+        const symbolId = icon.startsWith('#') ? icon : '#' + icon;
+        return `<svg class="iconfont-symbol" aria-hidden="true"><use xlink:href="${escapeHtml(symbolId)}"></use></svg>`;
     }
 
-    if (icon.startsWith('#')) {
-        return `<svg class="iconfont-symbol" aria-hidden="true"><use xlink:href="${escapeHtml(icon)}"></use></svg>`;
-    }
-
+    // 3. Font Awesome 等 class 类图标 (如 "fa-solid fa-star")
     if (icon.includes(' ')) {
         return `<i class="${escapeHtml(icon)}" aria-hidden="true"></i>`;
     }
 
-    return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.src='mn-src/momonav-icon.svg'; this.style.filter='grayscale(100%) brightness(0.7)'">`;
+    // 4. 图片文件路径（无 http 前缀但匹配图片扩展名）
+    if (isImageFile(icon)) {
+        return `<img src="${escapeHtml(icon)}" alt="icon" loading="lazy" width="24" height="24" onerror="this.src='mn-src/momonav-icon.svg'; this.style.filter='grayscale(100%) brightness(0.7)'">`;
+    }
+
+    // 5. 其他情况（emoji、纯文本等）直接作为文本输出
+    const chars = Array.from(icon);
+    const isLong = chars.length >= 2;
+    const displayText = chars.slice(0, 2).join('');
+    
+    return `<span class="icon-text ${isLong ? 'is-small' : ''}">${escapeHtml(displayText)}</span>`;
 }
+
+// 暴露到全局，供自定义功能模块（如 tools-panel.js）统一调用
+window.getIconHtml = getIconHtml;
 
 // 当前选中的搜索引擎（从 localStorage 读取，默认 Bing）
 let currentSearchEngine = (() => {
@@ -1742,8 +1764,11 @@ function sanitizeIconfontFromEditor(iconfontData) {
 
     const rawType = trimToString(iconfontData.type).toLowerCase();
     const type = rawType === 'online' ? 'online' : 'local';
+    const prefix = trimToString(iconfontData.prefix);
 
-    return { type, url };
+    const result = { type, url };
+    if (prefix) result.prefix = prefix;
+    return result;
 }
 
 function sanitizeFontawesomeFromEditor(fontawesomeData) {
@@ -1944,6 +1969,7 @@ async function refreshUiFromNavData() {
 
     if (appState.navData.iconfont) {
         appState.hasIconfontConfig = true;
+        appState.iconfontPrefix = trimToString(appState.navData.iconfont.prefix) || 'icon-';
         try {
             await loadIconfont(appState.navData.iconfont);
         } catch (error) {
@@ -1952,6 +1978,7 @@ async function refreshUiFromNavData() {
         }
     } else {
         appState.hasIconfontConfig = false;
+        appState.iconfontPrefix = 'icon-';
     }
 
     if (appState.navData.fontawesome) {
@@ -2029,7 +2056,7 @@ function initEditorUi() {
                 <section class="editor-section">
                     <h3>Logo</h3>
                     <label>logo.img<input type="text" data-editor-path="logo.img" id="editorFieldLogoImg" placeholder="Logo图片的URL"></label>
-                    <label>logo.text<input type="text" data-editor-path="logo.text" id="editorFieldLogoText" placeholder="Logo显示的文字"></label>
+                    <label>logo.text<input type="text" data-editor-path="logo.text" id="editorFieldLogoText" placeholder="Logo右边显示的文字"></label>
                     <label>logo.height<input type="number" step="1" min="1" data-editor-path="logo.height" id="editorFieldLogoHeight" placeholder="24" value="24"></label>
                 </section>
 
@@ -2126,6 +2153,7 @@ function initEditorUi() {
                             </select>
                         </label>
                         <label>url<input type="text" data-editor-path="iconfont.url" id="editorFieldIconfontUrl" placeholder="文件夹名 font_xxxxx"></label>
+                        <label>prefix<input type="text" data-editor-path="iconfont.prefix" id="editorFieldIconfontPrefix" placeholder="默认 icon-" title="图标前缀，如 imn-、icon- 等，用于精确识别 iconfont 图标"></label>
                     </div>
                 </section>
 

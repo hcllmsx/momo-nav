@@ -239,36 +239,38 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 <button class="tab-btn" data-engine="yahoo" data-url="https://search.yahoo.com/search?p=">Yahoo</button>
 ```
 
+### 方式三：图标识别优先级
+
+系统按以下顺序自动识别 `icon` 字段的内容：
+
+1.  **图片 URL**: 以 `http/https` 或 `/` 开头，或者以 `.png`, `.jpg`, `.svg` 等图片格式结尾。
+2.  **Iconfont Symbol**: 匹配 `iconfont.prefix` 配置的前缀（默认为 `icon-`）。支持 `imn-xxx` 或 `#imn-xxx` 格式。
+3.  **Font Awesome**: 包含空格（如 `fa-solid fa-star`）。
+4.  **Emoji / 纯文本**: 以上皆不匹配时。
+    - **长度建议**: 系统会自动通过 `Array.from` 安全处理，最多显示前 **2个** 字符（如一个 Emoji 或两个英文字母/数字）。
+    - **动态字号**: 1个字符（或1个Emoji）时显示特大号；2个字符时字号自动缩小以适配圆角矩形。
+
 ## Iconfont 配置
 
-### 在线方式（推荐）
+支持阿里图标库（Iconfont）的 Symbol 引用方式（彩色图标）。
 
 ```json
 {
   "iconfont": {
     "type": "online",
-    "url": "//at.alicdn.com/t/c/font_xxxxxx.js"
+    "url": "//at.alicdn.com/t/c/font_xxxxxx.js",
+    "prefix": "imn-"
   }
 }
 ```
 
-### 本地方式
+| 字段 | 说明 | 默认值 |
+|------|------|--------|
+| `type` | 加载方式 (`online` 或 `local`) | `local` |
+| `url` | 在线 JS 地址或本地文件夹名 | - |
+| `prefix` | 图标前缀，用于精确识别 iconfont（防止与文字图标冲突） | `icon-` |
 
-```json
-{
-  "iconfont": {
-    "type": "local",
-    "url": "font_xxxxxx_xxxxxxxx"
-  }
-}
-```
-
-使用 iconfont 图标时，直接填写图标名（从 iconfont 网站复制）：
-```json
-{
-  "icon": "icon-google"
-}
-```
+> **注意：** 设置 `prefix` 后，只有以前缀开头的图标才会被视为 iconfont 图标。例如设置 `"prefix": "imn-"`，则 `imn-google` 会被识别为图标，而 `google` 会被识别为纯文本图标。
 
 ## 网站链接配置
 
@@ -301,9 +303,11 @@ Logo 支持灵活配置，通过 `img`、`text`、`height` 三个可选字段组
 | 方式 | 示例 | 说明 |
 |------|------|------|
 | **Iconify** | `"https://api.iconify.design/mdi:github.svg"` | 15万+图标 |
-| **Iconfont Symbol** | `"icon-google"` | 彩色图标，需配置 iconfont |
-| **自定义图片** | `"icons/my-icon.png"` | 本地图片 |
-| **网站 Favicon** | `"https://example.com/favicon.ico"` | 直接引用 |
+| **Iconfont Symbol** | `"imn-google"` | 彩色图标，需匹配 `prefix` |
+| **Emoji** | `"🙂"` | 直接填写表情，自动居中显示 |
+| **纯文本** | `"Ab"` | 支持 1-2 个字符，自动转换展示 |
+| **自定义图片** | `"icons/my-icon.png"` | 本地图片路径 |
+| **网站 Favicon** | `"https://example.com/favicon.ico"` | 直接引用 URL |
 
 **Iconify 图标查找**：访问 [icon-sets.iconify.design](https://icon-sets.iconify.design/)
 - 品牌图标在 **Simple Icons** 里（如 Apple、QQ、微信等）

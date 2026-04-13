@@ -4,6 +4,7 @@
     padding: 0;
     box-sizing: border-box;
 }
+
 /* 移动端点击高亮（蓝色闪烁）去除 */
 a,
 button,
@@ -69,8 +70,10 @@ html.show-page-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(51, 51, 51, 0.42);
 }
 
-html, body {
-    overflow-x: hidden; /* 防止因侧边栏或搜索结果宽度突变导致水平滚动 */
+html,
+body {
+    overflow-x: hidden;
+    /* 防止因侧边栏或搜索结果宽度突变导致水平滚动 */
 }
 
 body {
@@ -101,18 +104,14 @@ body {
     z-index: 1;
     overflow: hidden;
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        #000 0%,
-        #000 var(--cover-fade-start),
-        transparent var(--cover-fade-end)
-    );
-    mask-image: linear-gradient(
-        to bottom,
-        #000 0%,
-        #000 var(--cover-fade-start),
-        transparent var(--cover-fade-end)
-    );
+    -webkit-mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 var(--cover-fade-start),
+            transparent var(--cover-fade-end));
+    mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 var(--cover-fade-start),
+            transparent var(--cover-fade-end));
 }
 
 .banner-bg video,
@@ -160,12 +159,10 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        to bottom,
-        rgba(9, 18, 31, 0.22) 0%,
-        rgba(252, 255, 254, 0.16) 48%,
-        rgba(252, 255, 254, 0) 100%
-    );
+    background: linear-gradient(to bottom,
+            rgba(9, 18, 31, 0.22) 0%,
+            rgba(252, 255, 254, 0.16) 48%,
+            rgba(252, 255, 254, 0) 100%);
 }
 
 .container {
@@ -320,7 +317,7 @@ body {
     white-space: nowrap;
 }
 
-.header-dropdown > .header-link::after {
+.header-dropdown>.header-link::after {
     content: '▲';
     font-size: 0.7rem;
     margin-left: 4px;
@@ -328,7 +325,7 @@ body {
     transition: transform 0.3s ease;
 }
 
-.header-dropdown:hover > .header-link::after {
+.header-dropdown:hover>.header-link::after {
     transform: rotate(180deg);
 }
 
@@ -627,6 +624,7 @@ body {
     border-bottom-color: var(--card-bg);
     color: var(--primary-color);
 }
+
 .search-wrapper:has(#searchInput:focus) .tab-btn.active {
     border-color: var(--primary-color);
     border-bottom-color: var(--card-bg);
@@ -857,6 +855,7 @@ body {
     color: var(--primary-hover) !important;
     background: rgba(255, 255, 255, 0.98) !important;
 }
+
 /* 分类样式 */
 .category {
     margin-bottom: 30px;
@@ -872,6 +871,7 @@ body {
         border-left-color: var(--primary-color);
         font-weight: 500;
     }
+
     100% {
         color: var(--text-muted);
         background: transparent;
@@ -890,10 +890,12 @@ body {
         transform: scaleX(0);
         opacity: 1;
     }
+
     40% {
         transform: scaleX(1);
         opacity: 1;
     }
+
     100% {
         transform: scaleX(1);
         opacity: 0;
@@ -993,6 +995,24 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+}
+
+/* Emoji / 纯文本图标样式 */
+.icon-text {
+    font-size: 38px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.icon-text.is-small {
+    font-size: 22px;
+    font-weight: 600;
 }
 
 .nav-name {
@@ -1127,6 +1147,7 @@ body.desktop-sidebar-fixed .category-sidebar {
     left: var(--desktop-sidebar-left, 0px);
     width: var(--desktop-sidebar-width, 200px);
 }
+
 @media (max-width: 768px) {
     :root {
         --cover-height: clamp(180px, 42vh, 380px);
@@ -1195,6 +1216,7 @@ body.desktop-sidebar-fixed .category-sidebar {
             background: var(--primary-color);
             color: #fff;
         }
+
         100% {
             border-left-color: transparent;
             background: transparent;
@@ -1214,6 +1236,7 @@ body.desktop-sidebar-fixed .category-sidebar {
     .category.highlight::before {
         display: none !important;
     }
+
     .logo-corner {
         top: 15px;
         left: 15px;
@@ -1327,7 +1350,7 @@ body.desktop-sidebar-fixed .category-sidebar {
         width: 34px;
         height: 34px;
     }
-    
+
     .nav-name {
         bottom: 7px;
         font-size: 0.78rem;
@@ -1459,7 +1482,7 @@ body.editor-panel-open .footer {
     gap: 8px;
 }
 
-.editor-section .editor-color-field > span {
+.editor-section .editor-color-field>span {
     white-space: nowrap;
     color: var(--text-muted);
 }
@@ -1468,7 +1491,7 @@ body.editor-panel-open .footer {
     margin: 0;
 }
 
-.editor-section .editor-color-field.is-disabled > span {
+.editor-section .editor-color-field.is-disabled>span {
     opacity: 0.58;
 }
 
@@ -1664,11 +1687,13 @@ body.editor-modal-open {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    width: 100%; /* 默认全宽 */
+    width: 100%;
+    /* 默认全宽 */
 }
 
 .editor-modal-field.is-half {
-    width: calc(50% - 6px); /* 半宽，减去间距的一半 */
+    width: calc(50% - 6px);
+    /* 半宽，减去间距的一半 */
 }
 
 .editor-modal-field-label {
@@ -1830,6 +1855,7 @@ body.editor-modal-open {
 }
 
 @media (max-width: 1400px) {
+
     body.editor-panel-open .container,
     body.editor-panel-open .footer {
         padding-right: 20px;
@@ -1837,6 +1863,7 @@ body.editor-modal-open {
 }
 
 @media (max-width: 1023px) {
+
     .editor-launcher-btn,
     .editor-panel {
         display: none !important;
@@ -1864,7 +1891,8 @@ body.editor-modal-open {
 /* 编辑模式下禁用链接跳转和高亮效果 */
 .header-nav.editor-mode .header-link {
     cursor: grab !important;
-    pointer-events: none; /* 禁用链接跳转 */
+    pointer-events: none;
+    /* 禁用链接跳转 */
 }
 
 /* 编辑模式下禁用下拉菜单弹出 */
@@ -1880,7 +1908,8 @@ body.editor-modal-open {
 
 .header-link-actions {
     position: absolute;
-    bottom: -28px; /* 改为显示在下方 */
+    bottom: -28px;
+    /* 改为显示在下方 */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -1891,7 +1920,8 @@ body.editor-modal-open {
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease;
-    transition-delay: 0.05s; /* 增加微小延迟，配合桥梁层让操作更从容 */
+    transition-delay: 0.05s;
+    /* 增加微小延迟，配合桥梁层让操作更从容 */
     z-index: 1005;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -1903,7 +1933,8 @@ body.editor-modal-open {
     bottom: 100%;
     left: 0;
     right: 0;
-    height: 10px; /* 覆盖链接和按钮之间的空隙 */
+    height: 10px;
+    /* 覆盖链接和按钮之间的空隙 */
 }
 
 .header-link-actions::after {
