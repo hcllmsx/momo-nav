@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.04.13.1335';
+const APP_VERSION = '2026.04.13.1554';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -2419,7 +2419,7 @@ async function verifyEditorPassword(actionName) {
     // 优先从草稿中读取密码，因为用户可能刚刚设置或修改了它
     const currentData = appState.editor.data || appState.navData;
     const password = trimToString(currentData.password);
-    
+
     // 校验规则：6-16位字符
     const isValid = password.length >= 6 && password.length <= 16;
     if (!isValid) return true;
