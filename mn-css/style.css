@@ -1387,11 +1387,7 @@ body.desktop-sidebar-fixed .category-sidebar {
     transform: translateY(-1px);
 }
 
-body.editor-panel-open .container,
-body.editor-panel-open .footer {
-    padding-right: 390px;
-    transition: padding-right 0.24s ease;
-}
+/* padding-right 被移除：editor-panel 已是 position:fixed，无需挤压容器 */
 
 .editor-panel {
     position: fixed;
