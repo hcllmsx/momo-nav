@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.04.13.1554';
+const APP_VERSION = '2026.05.13.2254';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -1023,11 +1023,7 @@ let currentSearchEngine = (() => {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            // 如果保存的 URL 包含 %s，清除缓存（兼容旧数据）
-            if (parsed.url && parsed.url.includes('%s')) {
-                localStorage.removeItem('momoNavSearchEngine');
-                console.log('清除旧版搜索引擎缓存');
-            } else {
+            if (parsed && parsed.engine && parsed.url) {
                 return parsed;
             }
         } catch (e) {
@@ -1181,6 +1177,7 @@ function renderLocalSearchHistory() {
         });
     });
 }
+
 // 设置搜索功能
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
@@ -1287,8 +1284,9 @@ function setupSearch() {
 function performSearch(query) {
     if (!query) return;
 
+    addLocalSearchHistory(query);
+
     if (currentSearchEngine.engine === 'local') {
-        addLocalSearchHistory(query);
         renderNav(appState.navData, query);
         return;
     }

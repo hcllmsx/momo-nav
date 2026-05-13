@@ -18,6 +18,7 @@
     <link rel="apple-touch-icon" sizes="180x180" id="appleTouchIcon" href="mn-src/momonav-icon-180px.png">
     <link rel="manifest" id="siteManifest" href="site.webmanifest">
     <link rel="stylesheet" href="mn-css/style.css">
+    <link rel="stylesheet" href="mn-css/search-suggestions.css?v=20260411_v1">
     <script id="iconfontLoader"></script>
 </head>
 
@@ -52,20 +53,23 @@
         <div class="search-wrapper">
             <div class="search-tabs">
                 <button class="tab-btn" data-engine="local" data-url="local">🔍 本地</button>
-                <button class="tab-btn" data-engine="bing" data-url="https://www.bing.com/search?q=">Bing</button>
-                <button class="tab-btn" data-engine="douban" data-url="https://search.douban.com/movie/subject_search?search_text=%s&cat=1002">豆瓣电影</button>
-                <button class="tab-btn" data-engine="metaso" data-url="https://metaso.cn/?q=">秘塔</button>
-                <button class="tab-btn" data-engine="google" data-url="https://www.google.com/search?q=">Google</button>
-                <button class="tab-btn" data-engine="duckduckgo" data-url="https://duckduckgo.com/?q=">DuckDuckGo</button>
+                <button class="tab-btn" data-engine="bing" data-url="https://www.bing.com/search?q=" data-suggest-provider="baidu">Bing</button>
+                <button class="tab-btn" data-engine="douban" data-url="https://search.douban.com/movie/subject_search?search_text=%s&cat=1002" data-suggest-provider="baidu">豆瓣电影</button>
+                <button class="tab-btn" data-engine="metaso" data-url="https://metaso.cn/?q=" data-suggest-provider="baidu">秘塔</button>
+                <button class="tab-btn" data-engine="google" data-url="https://www.google.com/search?q=" data-suggest-provider="baidu">Google</button>
+                <button class="tab-btn" data-engine="duckduckgo" data-url="https://duckduckgo.com/?q=" data-suggest-provider="baidu">DuckDuckGo</button>
             </div>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="输入关键词..." autocomplete="off" aria-label="搜索关键词">
-                <button id="searchClearBtn" class="search-clear-btn" type="button" aria-label="清空搜索">
-                    <span aria-hidden="true">×</span>
-                </button>
-                <button id="searchBtn" type="button" aria-label="搜索">
-                    <img src="mn-src/sousuo.svg" alt="" aria-hidden="true">
-                </button>
+            <div class="search-input-area">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="输入关键词..." autocomplete="off" aria-label="搜索关键词">
+                    <button id="searchClearBtn" class="search-clear-btn" type="button" aria-label="清空搜索">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                    <button id="searchBtn" type="button" aria-label="搜索">
+                        <img src="mn-src/sousuo.svg" alt="" aria-hidden="true">
+                    </button>
+                </div>
+                <div id="searchSuggestions" class="search-suggestions" role="listbox" aria-label="搜索建议" hidden></div>
             </div>
             <div id="searchHistory" class="search-history" aria-live="polite"></div>
         </div>
@@ -108,6 +112,7 @@
         });
     </script>
     <script src="mn-js/app.js?v=20260411_v1"></script>
+    <script src="mn-js/search-suggestions.js?v=20260411_v1"></script>
 
     <!--
         +++++++++++++++++++++++++++++++++++++++++++
