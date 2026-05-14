@@ -40,3 +40,18 @@
     background: rgba(var(--primary-rgb), 0.1);
     color: var(--primary-hover);
 }
+
+@media (max-width: 768px) {
+    .search-wrapper {
+        position: relative;
+        z-index: 60;
+    }
+
+    .search-input-area {
+        z-index: 70;
+    }
+
+    .search-suggestions {
+        z-index: 80;
+    }
+}
