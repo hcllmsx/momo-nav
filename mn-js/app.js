@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.05.13.2254';
+const APP_VERSION = '2026.05.19.2347';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -3979,8 +3979,8 @@ function renderHeaderNav(navLinks) {
         // 移动端处理
         if (link.children && link.children.length > 0) {
             mobileHtml += `
-                <div class="mobile-menu-dropdown">
-                    <button class="mobile-menu-link" type="button">${escapeHtml(link.name)}</button>
+                <div class="mobile-menu-dropdown active">
+                    <button class="mobile-menu-link" type="button" aria-expanded="true">${escapeHtml(link.name)}</button>
                     <div class="mobile-submenu">
                         ${link.children.map(child => `
                             <a href="${escapeHtml(child.url)}" target="${child.target || '_self'}">${escapeHtml(child.name)}</a>
@@ -4116,7 +4116,8 @@ function initMobileMenu() {
 
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            dropdown.classList.toggle('active');
+            const isOpen = dropdown.classList.toggle('active');
+            button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
 
         // 点击子菜单项关闭菜单
