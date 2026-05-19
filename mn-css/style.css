@@ -425,7 +425,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 40;
+    z-index: 500;
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -445,7 +445,7 @@ body {
     width: 80%;
     height: 100vh;
     background: var(--card-bg);
-    z-index: 45;
+    z-index: 501;
     overflow-y: auto;
     transform: translateX(100%);
     transition: transform 0.3s ease;
