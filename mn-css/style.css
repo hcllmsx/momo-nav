@@ -446,6 +446,7 @@ body {
     right: 0;
     width: min(86vw, 380px);
     height: 100vh;
+    height: 100dvh;
     background: rgba(var(--card-bg-rgb), 0.96);
     z-index: 501;
     overflow-y: auto;
@@ -1101,10 +1102,10 @@ body {
         display: none;
     }
 
-    /* 移动端显示汉堡菜单，改为 position:absolute 随页面滚动 */
+    /* 移动端显示汉堡菜单，fixed 固定在右上角，不随页面滚动 */
     .mobile-menu-btn {
         display: flex;
-        position: absolute;
+        position: fixed;
         top: 15px;
         right: 15px;
     }

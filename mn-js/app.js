@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.05.19.2347';
+const APP_VERSION = '2026.05.22.0019';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -437,7 +437,8 @@ async function applySiteConfig(data) {
         // 设置页脚项目链接的版本提示
         const footerLink = document.querySelector('.footer a');
         if (footerLink) {
-            footerLink.title = `版本: ${APP_VERSION}`;
+            const dataVer = typeof DATA_VERSION !== 'undefined' ? DATA_VERSION : '?';
+            footerLink.title = `数据版本: ${dataVer} | 核心版本: ${APP_VERSION}`;
         }
     }
 
@@ -4006,7 +4007,8 @@ function renderHeaderNav(navLinks) {
             </div>
             <div class="mobile-menu-footer">
                 <a href="https://github.com/hcllmsx/momo-nav" target="_blank">MOMO-NAV</a>
-                <div class="mobile-version-text">版本: ${APP_VERSION}</div>
+                <div class="mobile-version-text">数据版本: ${typeof DATA_VERSION !== 'undefined' ? DATA_VERSION : '?'}</div>
+                <div class="mobile-version-text">核心版本: ${APP_VERSION}</div>
             </div>
         `;
     }
