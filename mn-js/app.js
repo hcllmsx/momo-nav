@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.05.22.0019';
+const APP_VERSION = '2026.05.22.1010';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -4006,7 +4006,6 @@ function renderHeaderNav(navLinks) {
                 ${mobileHtml}
             </div>
             <div class="mobile-menu-footer">
-                <a href="https://github.com/hcllmsx/momo-nav" target="_blank">MOMO-NAV</a>
                 <div class="mobile-version-text">数据版本: ${typeof DATA_VERSION !== 'undefined' ? DATA_VERSION : '?'}</div>
                 <div class="mobile-version-text">核心版本: ${APP_VERSION}</div>
             </div>
@@ -4097,6 +4096,7 @@ function initMobileMenu() {
         const overflowStyle = isOpen ? 'hidden' : '';
         document.body.style.overflow = overflowStyle;
         document.documentElement.style.overflow = overflowStyle;
+
     };
 
     // 点击菜单按钮

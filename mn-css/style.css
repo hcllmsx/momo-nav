@@ -88,10 +88,13 @@ body {
 }
 
 /* 页面内容始终位于背景层上方 */
-.container,
-.footer {
+.container {
     position: relative;
     z-index: 2;
+}
+
+.footer {
+    position: relative;
 }
 
 /* 顶部封面背景（视频/图片） */
@@ -1102,10 +1105,10 @@ body {
         display: none;
     }
 
-    /* 移动端显示汉堡菜单，fixed 固定在右上角，不随页面滚动 */
+    /* 移动端显示汉堡菜单，随页面滚动 */
     .mobile-menu-btn {
         display: flex;
-        position: fixed;
+        position: absolute;
         top: 15px;
         right: 15px;
     }
