@@ -1334,6 +1334,10 @@ body.desktop-sidebar-fixed .category-sidebar {
         height: 40px;
     }
 
+    .nav-icon .icon-text {
+        font-size: 34px;
+    }
+
     .nav-name {
         bottom: 8px;
         font-size: 0.8rem;
@@ -1381,6 +1385,10 @@ body.desktop-sidebar-fixed .category-sidebar {
     .nav-icon {
         width: 34px;
         height: 34px;
+    }
+
+    .nav-icon .icon-text {
+        font-size: 26px;
     }
 
     .nav-name {
