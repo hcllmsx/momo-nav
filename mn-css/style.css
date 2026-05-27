@@ -588,7 +588,7 @@ body {
 
 /* 搜索区域（选项卡+搜索框一体化） */
 .search-wrapper {
-    max-width: 600px;
+    max-width: 900px;
     margin: 0 auto 50px;
 }
 
