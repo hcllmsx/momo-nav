@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.05.22.1010';
+const APP_VERSION = '2026.06.17.2334';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -18,6 +18,9 @@ window.appState = appState;
 function correctIconValue(value) {
     if (!value) return value;
     let v = String(value).trim();
+
+    // 0. 剥离首尾引号 (用户粘贴本地路径时常携带 " ' " " ' ' ` 等包裹符号)
+    v = v.replace(/^["'“”‘’`]+|["'“”‘’`]+$/g, '');
 
     // 1. 处理 Font Awesome HTML 标签 (如 <i class="fa fa-star"></i>)
     const faMatch = v.match(/class=["']([^"']+)["']/i);
