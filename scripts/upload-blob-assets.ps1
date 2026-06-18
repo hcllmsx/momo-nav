@@ -112,27 +112,37 @@ function Get-ReferencedAssetPaths {
 
     $categories = @($NavData.categories)
     foreach ($category in $categories) {
-        if (-not ($category.PSObject.Properties.Name -contains 'items')) {
-            continue
+        # 兼容旧结构 items 和新结构 subcategories
+        $entryLists = @()
+        if ($category.PSObject.Properties.Name -contains 'items') {
+            $entryLists += ,@($category.items)
+        }
+        if ($category.PSObject.Properties.Name -contains 'subcategories') {
+            foreach ($sub in @($category.subcategories)) {
+                if ($null -ne $sub -and $sub.PSObject.Properties.Name -contains 'items') {
+                    $entryLists += ,@($sub.items)
+                }
+            }
         }
 
-        $entries = @($category.items)
-        foreach ($entry in $entries) {
-            if ($null -eq $entry -or -not ($entry.PSObject.Properties.Name -contains 'icon')) {
-                continue
-            }
+        foreach ($entries in $entryLists) {
+            foreach ($entry in $entries) {
+                if ($null -eq $entry -or -not ($entry.PSObject.Properties.Name -contains 'icon')) {
+                    continue
+                }
 
-            $icon = $entry.icon
-            if (-not ($icon -is [string])) {
-                continue
-            }
+                $icon = $entry.icon
+                if (-not ($icon -is [string])) {
+                    continue
+                }
 
-            if (Test-IsRemoteOrInlinePath -Value $icon) {
-                continue
-            }
+                if (Test-IsRemoteOrInlinePath -Value $icon) {
+                    continue
+                }
 
-            $normalized = ConvertTo-RelativeAssetPath -Value $icon
-            if ($normalized) { [void]$collected.Add($normalized) }
+                $normalized = ConvertTo-RelativeAssetPath -Value $icon
+                if ($normalized) { [void]$collected.Add($normalized) }
+            }
         }
     }
 

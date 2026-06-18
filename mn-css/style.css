@@ -884,6 +884,14 @@ body {
     margin-bottom: 30px;
     scroll-margin-top: 15vh;
     position: relative;
+    /* 桌面端默认：标题与子分类标签同行，标签右对齐 */
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "title tabs"
+        "grids grids";
+    align-items: center;
+    row-gap: 14px;
 }
 
 /* 侧边栏高亮渐变消失 */
@@ -940,10 +948,10 @@ body {
 }
 
 .category-title {
+    grid-area: title;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-color);
-    margin-bottom: 15px;
     padding: 4px 10px 4px 13px;
     border-left: 3px solid var(--primary-color);
     display: flex;
@@ -959,6 +967,141 @@ body {
     font-size: 0.85rem;
     color: var(--text-muted);
     font-weight: 400;
+}
+
+/* 子分类标签栏 */
+.subcategory-tabs {
+    grid-area: tabs;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    /* 桌面端默认右对齐 */
+    justify-content: flex-end;
+}
+
+/* 网格容器（包裹多个子分类 grid） */
+.nav-grids {
+    grid-area: grids;
+}
+
+/* 仅一个「默认」子分类：非编辑模式下整体隐藏标签栏 */
+body:not(.editor-mode) .subcategory-tabs.is-single-default {
+    display: none;
+}
+
+/* 编辑模式：子分类标签另起一行，保持右对齐 */
+body.editor-mode .category {
+    grid-template-areas:
+        "title title"
+        "tabs tabs"
+        "grids grids";
+}
+
+body.editor-mode .subcategory-tabs {
+    justify-content: flex-end;
+}
+
+.subcat-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: rgba(var(--card-bg-rgb), 0.6);
+    border: 1px solid rgba(var(--primary-rgb), 0.12);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    line-height: 1.4;
+}
+
+.subcat-tab:hover {
+    color: var(--primary-hover);
+    border-color: rgba(var(--primary-rgb), 0.35);
+    background: rgba(var(--primary-rgb), 0.06);
+}
+
+.subcat-tab.active {
+    color: #fff;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 500;
+}
+
+.subcat-tab-count {
+    font-size: 0.72rem;
+    opacity: 0.78;
+}
+
+.subcat-tab.active .subcat-tab-count {
+    opacity: 0.92;
+}
+
+/* 编辑模式下：子分类行容器，虚线框包裹 tab + 工具按钮 */
+.subcat-row {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.subcat-row.editor-subcat-row {
+    gap: 2px;
+    border: 1px dashed rgba(var(--primary-rgb), 0.3);
+    border-radius: 18px;
+    padding: 2px 6px 2px 2px;
+    margin-right: 2px;
+}
+
+.editor-inline-btn.mini {
+    padding: 0 5px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    min-height: auto;
+    border-radius: 10px;
+}
+
+/* 子分类编辑工具按钮：统一宽度 */
+.subcat-row.editor-subcat-row .editor-inline-btn.mini {
+    width: 24px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.subcat-drag-handle {
+    cursor: grab;
+    user-select: none;
+    letter-spacing: -2px;
+}
+
+.subcat-drag-handle:active {
+    cursor: grabbing;
+}
+
+.subcat-add-btn {
+    color: var(--primary-color);
+    border-style: dashed;
+    background: transparent;
+}
+
+.subcat-add-btn:hover {
+    background: rgba(var(--primary-rgb), 0.08);
+}
+
+.subcat-tab.is-drop-target {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 1px;
+}
+
+/* 隐藏非激活的 grid */
+.nav-grid.is-hidden {
+    display: none;
 }
 
 /* 网格布局 */
@@ -1261,6 +1404,18 @@ body.desktop-sidebar-fixed .category-sidebar {
         display: none !important;
     }
 
+    /* 移动端：子分类标签另起一行，左对齐 */
+    .category {
+        grid-template-areas:
+            "title title"
+            "tabs tabs"
+            "grids grids";
+    }
+
+    .subcategory-tabs {
+        justify-content: flex-start;
+    }
+
     .logo-corner {
         top: 15px;
         left: 15px;
@@ -1401,34 +1556,12 @@ body.desktop-sidebar-fixed .category-sidebar {
 /* =========================
    编辑模式（Ctrl + F9）
    ========================= */
+/* 顶部入口按钮已移除：Ctrl+F9 直接进入编辑模式。保留样式仅作历史兼容，不渲染。 */
 .editor-launcher-btn {
-    margin-left: 10px;
-    padding: 6px 10px;
-    border: 1px solid rgba(var(--primary-rgb), 0.32);
-    border-radius: 999px;
-    background: rgba(var(--card-bg-rgb), 0.9);
-    color: var(--primary-color);
-    font-size: 0.72rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    line-height: 1;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    display: none !important;
 }
 
-.editor-launcher-btn.is-visible {
-    display: inline-flex;
-}
-
-.editor-launcher-btn:hover {
-    background: var(--primary-hover);
-    color: #fff;
-    transform: translateY(-1px);
-}
-
-/* padding-right 被移除：editor-panel 已是 position:fixed，无需挤压容器 */
-
+/* 面板：右侧弹出 */
 .editor-panel {
     position: fixed;
     top: 0;
@@ -1452,6 +1585,91 @@ body.desktop-sidebar-fixed .category-sidebar {
     transform: translateX(0);
 }
 
+/* 面板隐藏态：向右滑出，但仍处于编辑模式 */
+.editor-panel.is-collapsed {
+    transform: translateX(110%);
+}
+
+/* 面板 head 内的「隐藏面板」按钮 */
+.editor-panel-head-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.editor-panel-toggle-inline-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.editor-panel-toggle-inline-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+/* 面板隐藏时，右上角显示「展开」把手 */
+.editor-panel-toggle-btn {
+    position: fixed;
+    top: 60px;
+    right: 16px;
+    z-index: 119;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--primary-rgb), 0.32);
+    background: rgba(var(--card-bg-rgb), 0.95);
+    color: var(--primary-color);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, color 0.2s ease;
+    animation: editorToggleNudge 1.8s ease-in-out infinite;
+}
+
+.editor-panel-toggle-btn:hover {
+    background: var(--primary-hover);
+    color: #fff;
+    animation-play-state: paused;
+}
+
+/* 把手微微跳动：水平方向轻推，暗示「拉开」 */
+@keyframes editorToggleNudge {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(-4px);
+    }
+}
+
+/* 尊重用户「减少动态」偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .editor-panel-toggle-btn {
+        animation: none;
+    }
+}
+
+/* 编辑模式且面板隐藏时，显示展开把手 */
+body.editor-mode.editor-panel-collapsed .editor-panel-toggle-btn {
+    display: flex;
+}
+
 .editor-panel-head {
     display: flex;
     align-items: center;
@@ -1473,6 +1691,13 @@ body.desktop-sidebar-fixed .category-sidebar {
     background: #fff;
     color: var(--text-muted);
     cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.editor-close-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
 }
 
 .editor-panel-body {

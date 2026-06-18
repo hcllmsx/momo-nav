@@ -50,11 +50,20 @@ function collectReferencedAssetPaths(navData) {
   const categories = Array.isArray(navData?.categories) ? navData.categories : [];
 
   for (const category of categories) {
-    const items = Array.isArray(category?.items) ? category.items : [];
-    for (const item of items) {
-      const iconPath = normalizeItemIconPath(item?.icon);
-      if (iconPath) {
-        collected.add(iconPath);
+    // 兼容旧结构 items 和新结构 subcategories
+    const itemLists = [];
+    if (Array.isArray(category?.items)) itemLists.push(category.items);
+    if (Array.isArray(category?.subcategories)) {
+      for (const sub of category.subcategories) {
+        if (sub && Array.isArray(sub.items)) itemLists.push(sub.items);
+      }
+    }
+    for (const items of itemLists) {
+      for (const item of items) {
+        const iconPath = normalizeItemIconPath(item?.icon);
+        if (iconPath) {
+          collected.add(iconPath);
+        }
       }
     }
   }

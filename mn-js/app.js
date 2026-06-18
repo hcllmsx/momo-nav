@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.06.17.2334';
+const APP_VERSION = '2026.06.18.1232';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -822,69 +822,9 @@ function itemMatchesSearch(item, searchTerm) {
         keywords.some(keyword => keyword.includes(term));
 }
 
-// 渲染导航
-function renderNav(data, searchTerm = '') {
-    const container = document.getElementById('navContent');
-    const sidebar = document.getElementById('categorySidebar');
 
-    if (!data || !data.categories) {
-        container.innerHTML = '<p style="text-align: center; color: #999;">暂无数据</p>';
-        sidebar.innerHTML = '';
-        return;
-    }
+// 渲染导航：实现见文件后部（编辑模式与子分类支持）
 
-    let html = '';
-    let sidebarHtml = '';
-    let hasResults = false;
-
-    data.categories.forEach((category, index) => {
-        // 过滤项目
-        const filteredItems = category.items.filter(item => itemMatchesSearch(item, searchTerm));
-
-        if (filteredItems.length === 0) return;
-        hasResults = true;
-
-        const catId = 'category-' + index;
-
-        html += `
-            <section class="category" id="${catId}">
-                <h2 class="category-title">
-                    ${escapeHtml(category.name)}
-                    <span class="category-count">(${filteredItems.length})</span>
-                </h2>
-                <div class="nav-grid">
-                    ${filteredItems.map(item => createNavCard(item)).join('')}
-                </div>
-            </section>
-        `;
-
-        sidebarHtml += `
-            <a class="sidebar-link" data-target="${catId}">${escapeHtml(category.name)}</a>
-        `;
-    });
-
-    if (!hasResults) {
-        html = `
-            <div class="no-results">
-                <div class="no-results-icon">🔍</div>
-                <p>没有找到匹配 "${escapeHtml(searchTerm)}" 的结果</p>
-            </div>
-        `;
-        sidebarHtml = '';
-    }
-
-    container.innerHTML = html;
-    sidebar.innerHTML = sidebarHtml;
-
-    if (typeof window.refreshCategorySidebarSticky === 'function') {
-        window.refreshCategorySidebarSticky();
-    }
-
-    // 绑定侧边栏点击事件
-    if (hasResults) {
-        setupSidebar();
-    }
-}
 
 // 设置侧边栏功能
 function setupSidebar() {
@@ -919,7 +859,7 @@ function setupSidebar() {
 
             if (!isMobile) {
                 setTimeout(() => {
-                    const grid = target.querySelector('.nav-grid');
+                    const grid = target.querySelector('.nav-grid:not(.is-hidden)') || target.querySelector('.nav-grid');
                     if (grid) {
                         const items = grid.querySelectorAll('.nav-card');
                         const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
@@ -1406,7 +1346,6 @@ appState.loadedIconfontUrl = '';
 appState.loadedFontawesomeUrl = '';
 appState.editor = {
     active: false,
-    launcherVisible: false,
     panelOpen: false,
     applying: false,
     pendingApply: false,
@@ -1421,8 +1360,8 @@ appState.editor = {
         fontawesome: false,
     },
     colorToggles: buildDefaultColorToggleState(false),
-    launcherEl: null,
     panelEl: null,
+    panelToggleEl: null,
     drag: null,
     modalLayerEl: null,
     modalResolver: null,
@@ -1553,22 +1492,89 @@ function normalizeEditableCategories(categories) {
     return categories.map((category, categoryIndex) => {
         const safeCategory = category && typeof category === 'object' ? category : {};
         const safeItems = Array.isArray(safeCategory.items) ? safeCategory.items : [];
+        const normalizeItem = item => {
+            const safeItem = item && typeof item === 'object' ? item : {};
+            return {
+                name: typeof safeItem.name === 'string' ? safeItem.name : '',
+                url: typeof safeItem.url === 'string' ? safeItem.url : '',
+                title: typeof safeItem.title === 'string' ? safeItem.title : '',
+                icon: typeof safeItem.icon === 'string' ? safeItem.icon : '',
+                keywords: Array.isArray(safeItem.keywords)
+                    ? safeItem.keywords.map(keyword => String(keyword))
+                    : (typeof safeItem.keywords === 'string' ? safeItem.keywords : ''),
+            };
+        };
+
+        // 兼容旧数据：若没有 subcategories，将 items 包装成首个子分类「默认」
+        let safeSubs = Array.isArray(safeCategory.subcategories) ? safeCategory.subcategories : null;
+        if (!safeSubs || safeSubs.length === 0) {
+            safeSubs = [{
+                id: generateSubcategoryId(),
+                name: '默认',
+                items: safeItems.map(normalizeItem),
+            }];
+        } else {
+            safeSubs = safeSubs.map(sub => {
+                const safeSub = sub && typeof sub === 'object' ? sub : {};
+                const subItems = Array.isArray(safeSub.items) ? safeSub.items : [];
+                return {
+                    id: typeof safeSub.id === 'string' && safeSub.id
+                        ? safeSub.id
+                        : generateSubcategoryId(),
+                    name: typeof safeSub.name === 'string' ? safeSub.name : '默认',
+                    items: subItems.map(normalizeItem),
+                };
+            });
+        }
+
         return {
             name: typeof safeCategory.name === 'string' ? safeCategory.name : `分类 ${categoryIndex + 1}`,
-            items: safeItems.map(item => {
-                const safeItem = item && typeof item === 'object' ? item : {};
-                return {
-                    name: typeof safeItem.name === 'string' ? safeItem.name : '',
-                    url: typeof safeItem.url === 'string' ? safeItem.url : '',
-                    title: typeof safeItem.title === 'string' ? safeItem.title : '',
-                    icon: typeof safeItem.icon === 'string' ? safeItem.icon : '',
-                    keywords: Array.isArray(safeItem.keywords)
-                        ? safeItem.keywords.map(keyword => String(keyword))
-                        : (typeof safeItem.keywords === 'string' ? safeItem.keywords : ''),
-                };
-            }),
+            subcategories: safeSubs,
         };
     });
+}
+
+// 生成子分类稳定 id（用于 localStorage 持久化激活态）
+function generateSubcategoryId() {
+    return 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+}
+
+// 从分类中按 id 取子分类；id 缺失时回退到第一个
+function getSubcategoryById(category, subId) {
+    const subs = Array.isArray(category && category.subcategories) ? category.subcategories : [];
+    if (subs.length === 0) return null;
+    if (subId) {
+        const found = subs.find(s => s && s.id === subId);
+        if (found) return found;
+    }
+    return subs[0];
+}
+
+// localStorage 持久化激活子分类
+const ACTIVE_SUBCAT_STORAGE_KEY = 'momonav-active-subcats';
+function readActiveSubcatMap() {
+    try {
+        const raw = localStorage.getItem(ACTIVE_SUBCAT_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+}
+function writeActiveSubcatMap(map) {
+    try {
+        localStorage.setItem(ACTIVE_SUBCAT_STORAGE_KEY, JSON.stringify(map || {}));
+    } catch (e) { /* ignore */ }
+}
+function rememberActiveSubcat(categoryIndex, subId) {
+    const map = readActiveSubcatMap();
+    map[String(categoryIndex)] = subId;
+    writeActiveSubcatMap(map);
+}
+function recallActiveSubcat(categoryIndex) {
+    const map = readActiveSubcatMap();
+    return map[String(categoryIndex)] || '';
 }
 
 function ensureEditorDataShape(sourceData) {
@@ -1909,36 +1915,54 @@ function sanitizeCategoriesFromEditor(categories) {
     return categories.reduce((result, category, index) => {
         const safeCategory = category && typeof category === 'object' ? category : {};
         const categoryName = trimToString(safeCategory.name);
-        const rawItems = Array.isArray(safeCategory.items) ? safeCategory.items : [];
-        const items = rawItems.reduce((itemResults, item) => {
-            const safeItem = item && typeof item === 'object' ? item : {};
-            const name = trimToString(safeItem.name);
-            const url = trimToString(safeItem.url);
-            if (!name || !url) return itemResults;
+        const rawSubs = Array.isArray(safeCategory.subcategories) ? safeCategory.subcategories : [];
 
-            const normalizedItem = {
-                name,
-                url,
-            };
+        const sanitizeItems = rawItems => {
+            const itemsArr = Array.isArray(rawItems) ? rawItems : [];
+            return itemsArr.reduce((itemResults, item) => {
+                const safeItem = item && typeof item === 'object' ? item : {};
+                const name = trimToString(safeItem.name);
+                const url = trimToString(safeItem.url);
+                if (!name || !url) return itemResults;
 
-            const title = trimToString(safeItem.title);
-            if (title) normalizedItem.title = title;
+                const normalizedItem = { name, url };
 
-            const icon = trimToString(safeItem.icon);
-            if (icon) normalizedItem.icon = icon;
+                const title = trimToString(safeItem.title);
+                if (title) normalizedItem.title = title;
 
-            const keywords = sanitizeKeywordsFromEditor(safeItem.keywords);
-            if (keywords) normalizedItem.keywords = keywords;
+                const icon = trimToString(safeItem.icon);
+                if (icon) normalizedItem.icon = icon;
 
-            itemResults.push(normalizedItem);
-            return itemResults;
+                const keywords = sanitizeKeywordsFromEditor(safeItem.keywords);
+                if (keywords) normalizedItem.keywords = keywords;
+
+                itemResults.push(normalizedItem);
+                return itemResults;
+            }, []);
+        };
+
+        // 清洗子分类；若全部为空，保留一个「默认」空子分类，避免渲染异常
+        const subcategories = rawSubs.reduce((subResults, sub, subIndex) => {
+            const safeSub = sub && typeof sub === 'object' ? sub : {};
+            const subName = trimToString(safeSub.name) || `子分类 ${subIndex + 1}`;
+            const items = sanitizeItems(safeSub.items);
+            subResults.push({
+                id: typeof safeSub.id === 'string' && safeSub.id ? safeSub.id : generateSubcategoryId(),
+                name: subName,
+                items,
+            });
+            return subResults;
         }, []);
 
-        if (!categoryName && items.length === 0) return result;
+        if (subcategories.length === 0) {
+            subcategories.push({ id: generateSubcategoryId(), name: '默认', items: [] });
+        }
+
+        if (!categoryName && subcategories.every(s => s.items.length === 0)) return result;
 
         result.push({
             name: categoryName || `分类 ${index + 1}`,
-            items,
+            subcategories,
         });
 
         return result;
@@ -2086,26 +2110,6 @@ async function refreshUiFromNavData() {
 }
 
 function initEditorUi() {
-    const siteLogo = document.getElementById('siteLogo');
-    if (!siteLogo) return;
-
-    if (!appState.editor.launcherEl) {
-        const launcherBtn = document.createElement('button');
-        launcherBtn.type = 'button';
-        launcherBtn.id = 'editorLauncherBtn';
-        launcherBtn.className = 'editor-launcher-btn';
-        launcherBtn.textContent = '进入编辑模式';
-        launcherBtn.addEventListener('click', () => {
-            if (appState.editor.active) {
-                exitEditorMode();
-            } else {
-                enterEditorMode();
-            }
-        });
-        siteLogo.appendChild(launcherBtn);
-        appState.editor.launcherEl = launcherBtn;
-    }
-
     if (!appState.editor.panelEl) {
         const panel = document.createElement('aside');
         panel.id = 'editorPanel';
@@ -2114,7 +2118,10 @@ function initEditorUi() {
         panel.innerHTML = `
             <div class="editor-panel-head">
                 <strong>可视化编辑</strong>
-                <button type="button" class="editor-close-btn" data-editor-action="close-editor" aria-label="关闭编辑面板">×</button>
+                <span class="editor-panel-head-actions">
+                    <button type="button" class="editor-panel-toggle-inline-btn" data-editor-action="toggle-editor-panel" aria-label="隐藏面板" title="隐藏面板（保留编辑模式）">▷</button>
+                    <button type="button" class="editor-close-btn" data-editor-action="close-editor" aria-label="退出编辑模式" title="退出编辑模式">✕</button>
+                </span>
             </div>
             <div class="editor-panel-body">
                 <section class="editor-section">
@@ -2272,6 +2279,19 @@ function initEditorUi() {
         document.body.appendChild(panel);
         appState.editor.panelEl = panel;
 
+        // 全局「展开面板」把手：面板隐藏时显示在右上角，点击重新展开
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'editor-panel-toggle-btn';
+        toggleBtn.setAttribute('aria-label', '显示编辑面板');
+        toggleBtn.title = '显示编辑面板';
+        toggleBtn.textContent = '◁';
+        toggleBtn.addEventListener('click', () => {
+            showEditorPanel();
+        });
+        document.body.appendChild(toggleBtn);
+        appState.editor.panelToggleEl = toggleBtn;
+
         panel.addEventListener('click', handleEditorPanelClick);
         panel.addEventListener('input', handleEditorPanelInputChange);
         panel.addEventListener('change', handleEditorPanelInputChange);
@@ -2333,8 +2353,6 @@ function initEditorUi() {
         }
     }
 
-    updateEditorLauncherVisibility();
-    updateEditorLauncherLabel();
     syncEditorFormFromState();
 }
 
@@ -2394,21 +2412,17 @@ async function handleEditorShortcut(event) {
     event.preventDefault();
     if (!isDesktopEditorViewport()) return;
 
-    // 检查密码保护
-    if (!appState.editor.launcherVisible) {
+    // Ctrl+F9：直接切换编辑模式（进入或退出）
+    if (appState.editor.active) {
+        exitEditorMode();
+        showToast('编辑模式已禁用', 3000, '#00bd06');
+    } else {
         const verified = await verifyEditorPassword('进入编辑模式');
         if (!verified) return;
-    }
-
-    if (!appState.editor.launcherVisible) {
-        appState.editor.launcherVisible = true;
+        enterEditorMode();
         showToast('编辑模式已启用', 3000, '#e05d00');
-    } else if (!appState.editor.active) {
-        appState.editor.launcherVisible = false;
-        showToast('编辑模式已禁用', 3000, '#00bd06');
     }
 
-    updateEditorLauncherVisibility();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2459,33 +2473,21 @@ async function verifyEditorPassword(actionName) {
     }
 }
 
-function updateEditorLauncherLabel() {
-    if (!appState.editor.launcherEl) return;
-    appState.editor.launcherEl.textContent = appState.editor.active ? '退出编辑模式' : '进入编辑模式';
-}
-
-function updateEditorLauncherVisibility() {
-    if (!appState.editor.launcherEl) return;
-    const shouldShow = appState.editor.launcherVisible || appState.editor.active;
-    appState.editor.launcherEl.classList.toggle('is-visible', shouldShow);
-}
-
 function enterEditorMode() {
     if (!isDesktopEditorViewport()) return;
     if (!appState.editor.panelEl) initEditorUi();
 
     appState.editor.active = true;
     appState.editor.panelOpen = true;
-    appState.editor.launcherVisible = true;
 
     document.body.classList.add('editor-mode', 'editor-panel-open');
+    document.body.classList.remove('editor-panel-collapsed');
     if (appState.editor.panelEl) {
         appState.editor.panelEl.classList.add('is-open');
+        appState.editor.panelEl.classList.remove('is-collapsed');
         appState.editor.panelEl.setAttribute('aria-hidden', 'false');
     }
 
-    updateEditorLauncherLabel();
-    updateEditorLauncherVisibility();
     syncEditorFormFromState();
     refreshUiFromNavData();
 }
@@ -2494,17 +2496,39 @@ function exitEditorMode() {
     appState.editor.active = false;
     appState.editor.panelOpen = false;
 
-    document.body.classList.remove('editor-mode', 'editor-panel-open');
+    document.body.classList.remove('editor-mode', 'editor-panel-open', 'editor-panel-collapsed');
     closeEditorModal(null);
     if (appState.editor.panelEl) {
-        appState.editor.panelEl.classList.remove('is-open');
+        appState.editor.panelEl.classList.remove('is-open', 'is-collapsed');
         appState.editor.panelEl.setAttribute('aria-hidden', 'true');
     }
 
     clearEditorDragState();
-    updateEditorLauncherLabel();
-    updateEditorLauncherVisibility();
     refreshUiFromNavData();
+}
+
+// 隐藏面板：仅滑出视图，不退出编辑模式
+function hideEditorPanel() {
+    if (!appState.editor.active) return;
+    appState.editor.panelOpen = false;
+    document.body.classList.remove('editor-panel-open');
+    document.body.classList.add('editor-panel-collapsed');
+    if (appState.editor.panelEl) {
+        appState.editor.panelEl.classList.add('is-collapsed');
+        appState.editor.panelEl.setAttribute('aria-hidden', 'true');
+    }
+}
+
+// 显示面板：重新滑入，保持编辑模式
+function showEditorPanel() {
+    if (!appState.editor.active) return;
+    appState.editor.panelOpen = true;
+    document.body.classList.add('editor-panel-open');
+    document.body.classList.remove('editor-panel-collapsed');
+    if (appState.editor.panelEl) {
+        appState.editor.panelEl.classList.remove('is-collapsed');
+        appState.editor.panelEl.setAttribute('aria-hidden', 'false');
+    }
 }
 
 function handleEditorPanelClick(event) {
@@ -2519,6 +2543,13 @@ async function executeEditorAction(action, dataset = {}) {
     switch (action) {
         case 'close-editor':
             exitEditorMode();
+            return;
+        case 'toggle-editor-panel':
+            if (appState.editor.panelOpen) {
+                hideEditorPanel();
+            } else {
+                showEditorPanel();
+            }
             return;
         case 'export-config':
             exportEditorConfig();
@@ -2538,14 +2569,23 @@ async function executeEditorAction(action, dataset = {}) {
         case 'delete-category':
             deleteCategoryFromEditor(Number(dataset.categoryIndex));
             return;
+        case 'add-subcategory':
+            await addSubcategoryFromEditor(Number(dataset.categoryIndex));
+            return;
+        case 'edit-subcategory':
+            await editSubcategoryFromEditor(Number(dataset.categoryIndex), dataset.subId);
+            return;
+        case 'delete-subcategory':
+            deleteSubcategoryFromEditor(Number(dataset.categoryIndex), dataset.subId);
+            return;
         case 'add-link':
-            await addLinkFromEditor(Number(dataset.categoryIndex));
+            await addLinkFromEditor(Number(dataset.categoryIndex), dataset.subId);
             return;
         case 'edit-link':
-            await editLinkFromEditor(Number(dataset.categoryIndex), Number(dataset.itemIndex));
+            await editLinkFromEditor(Number(dataset.categoryIndex), Number(dataset.itemIndex), dataset.subId);
             return;
         case 'delete-link':
-            deleteLinkFromEditor(Number(dataset.categoryIndex), Number(dataset.itemIndex));
+            deleteLinkFromEditor(Number(dataset.categoryIndex), Number(dataset.itemIndex), dataset.subId);
             return;
         case 'add-nav-link':
             await handleAddNavLink();
@@ -2847,7 +2887,7 @@ function openEditorModalForm(config = {}) {
                 options.forEach(opt => {
                     const optEl = document.createElement('option');
                     optEl.value = opt.value;
-                    optEl.textContent = opt.text || opt.value;
+                    optEl.textContent = opt.text || opt.label || opt.value;
                     if (opt.value === field.value) optEl.selected = true;
                     inputEl.appendChild(optEl);
                 });
@@ -3090,7 +3130,11 @@ async function addCategoryFromEditor() {
 
     appState.editor.data.categories.push({
         name,
-        items: [],
+        subcategories: [{
+            id: generateSubcategoryId(),
+            name: '默认',
+            items: [],
+        }],
     });
 
     applyEditorPreview();
@@ -3120,51 +3164,309 @@ function deleteCategoryFromEditor(categoryIndex) {
     applyEditorPreview();
 }
 
-async function addLinkFromEditor(categoryIndex) {
+// 取编辑态分类的可写子分类数组（确保存在）
+function ensureSubcategories(category) {
+    if (!category) return null;
+    if (!Array.isArray(category.subcategories) || category.subcategories.length === 0) {
+        category.subcategories = [{
+            id: generateSubcategoryId(),
+            name: '默认',
+            items: [],
+        }];
+    }
+    return category.subcategories;
+}
+
+function getEditableSubcategory(categoryIndex, subId) {
+    const category = getEditableCategoryByIndex(categoryIndex);
+    if (!category) return null;
+    const subs = ensureSubcategories(category);
+    const found = subs.find(s => s && s.id === subId);
+    return found || null;
+}
+
+// 子分类表单：支持手动指定 id；留空则自动生成
+// existngIds: 当前分类下已占用的 id 集合（不含当前编辑的 subId）
+// 返回 { name, id } 或 null
+async function promptSubcategoryForm({ defaultName = '', defaultId = '', existingIds = [] } = {}) {
+    const occupied = new Set(existingIds.filter(Boolean));
+    let lastError = '';
+
+    while (true) {
+        const values = await openEditorModalForm({
+            title: '子分类设置',
+            description: lastError || '请输入子分类名称。ID 可留空（自动生成），手动指定时需在同一分类内唯一。',
+            submitText: '保存子分类',
+            fields: [
+                {
+                    name: 'name',
+                    label: '子分类名称',
+                    type: 'text',
+                    required: true,
+                    placeholder: '例如：常用 / 备用',
+                    value: defaultName,
+                },
+                {
+                    name: 'id',
+                    label: '子分类 ID',
+                    type: 'text',
+                    placeholder: '留空自动生成；手动指定需唯一，如 sub-my-tools',
+                    value: defaultId,
+                },
+            ],
+        });
+
+        if (!values) return null;
+
+        const name = trimToString(values.name);
+        if (!name) return null;
+
+        const rawId = trimToString(values.id);
+        // ID 合法性：仅允许字母、数字、下划线、连字符
+        const idPattern = /^[A-Za-z0-9_-]+$/;
+        let finalId;
+
+        if (!rawId) {
+            finalId = generateSubcategoryId();
+        } else if (!idPattern.test(rawId)) {
+            lastError = `ID「${rawId}」含非法字符，仅允许字母、数字、下划线、连字符。`;
+            defaultName = name;
+            defaultId = rawId;
+            continue;
+        } else if (occupied.has(rawId)) {
+            lastError = `ID「${rawId}」已被同分类下其它子分类占用，请更换或留空自动生成。`;
+            defaultName = name;
+            defaultId = rawId;
+            continue;
+        } else {
+            finalId = rawId;
+        }
+
+        return { name, id: finalId };
+    }
+}
+
+async function addSubcategoryFromEditor(categoryIndex) {
+    const category = getEditableCategoryByIndex(categoryIndex);
+    if (!category) return;
+    const subs = ensureSubcategories(category);
+    const existingIds = subs.map(s => s && s.id).filter(Boolean);
+
+    const result = await promptSubcategoryForm({
+        defaultName: '新子分类',
+        existingIds,
+    });
+    if (!result) return;
+
+    subs.push({ id: result.id, name: result.name, items: [] });
+    applyEditorPreview();
+}
+
+async function editSubcategoryFromEditor(categoryIndex, subId) {
+    const sub = getEditableSubcategory(categoryIndex, subId);
+    if (!sub) return;
+    const category = getEditableCategoryByIndex(categoryIndex);
+    const subs = Array.isArray(category && category.subcategories) ? category.subcategories : [];
+    const existingIds = subs.filter(s => s && s.id !== subId).map(s => s.id).filter(Boolean);
+
+    const result = await promptSubcategoryForm({
+        defaultName: sub.name || '',
+        defaultId: sub.id || '',
+        existingIds,
+    });
+    if (!result) return;
+
+    // 若 id 变更，同步迁移 localStorage 记忆
+    if (result.id !== subId) {
+        const map = readActiveSubcatMap();
+        if (map[String(categoryIndex)] === subId) {
+            map[String(categoryIndex)] = result.id;
+            writeActiveSubcatMap(map);
+        }
+    }
+    sub.id = result.id;
+    sub.name = result.name;
+    applyEditorPreview();
+}
+
+function deleteSubcategoryFromEditor(categoryIndex, subId) {
+    const category = getEditableCategoryByIndex(categoryIndex);
+    if (!category) return;
+    const subs = Array.isArray(category.subcategories) ? category.subcategories : [];
+    if (subs.length <= 1) {
+        showToast('至少保留一个子分类', 2500, '#ff4d4f');
+        return;
+    }
+    const idx = subs.findIndex(s => s && s.id === subId);
+    if (idx === -1) return;
+    const sub = subs[idx];
+    const confirmDelete = window.confirm(`确定删除子分类「${sub.name || '未命名'}」及其下 ${Array.isArray(sub.items) ? sub.items.length : 0} 个链接吗？`);
+    if (!confirmDelete) return;
+    subs.splice(idx, 1);
+    applyEditorPreview();
+}
+
+// 让用户在弹窗中选择目标子分类（用于新增/编辑链接）
+async function promptLinkDataWithSubcat(defaultItem = {}, categoryIndex, defaultSubId = '') {
+    const category = getEditableCategoryByIndex(categoryIndex);
+    const subs = category && Array.isArray(category.subcategories) ? category.subcategories : [];
+    const options = subs.map(s => ({
+        value: s.id,
+        label: `${trimToString(s.name) || '未命名'}（${s.id}）`,
+    }));
+    const hasSubs = options.length > 0;
+    const initialSubId = (defaultSubId && options.find(o => o.value === defaultSubId))
+        ? defaultSubId
+        : (hasSubs ? options[0].value : '');
+
+    const defaultKeywords = Array.isArray(defaultItem.keywords)
+        ? defaultItem.keywords.join(',')
+        : (defaultItem.keywords || '');
+
+    const values = await openEditorModalForm({
+        title: '链接设置',
+        description: '请填写链接信息，名称和地址为必填。',
+        submitText: '保存链接',
+        fields: [
+            {
+                name: 'subId',
+                label: '目标子分类',
+                type: 'select',
+                value: initialSubId,
+                options: hasSubs ? options : [{ value: '', label: '默认' }], // 无子分类时显示「默认」
+            },
+            {
+                name: 'name',
+                label: '名称',
+                type: 'text',
+                required: true,
+                placeholder: '例如：GitHub',
+                value: defaultItem.name || '',
+            },
+            {
+                name: 'url',
+                label: 'URL',
+                type: 'text',
+                required: true,
+                placeholder: 'https://',
+                value: defaultItem.url || '',
+            },
+            {
+                name: 'title',
+                label: '描述',
+                type: 'textarea',
+                rows: 3,
+                placeholder: '鼠标悬停时显示的描述',
+                value: defaultItem.title || '',
+            },
+            {
+                name: 'icon',
+                label: '图标',
+                type: 'text',
+                placeholder: 'icon 名称 / 图片 URL',
+                value: defaultItem.icon || '',
+            },
+            {
+                name: 'keywords',
+                label: '关键词',
+                type: 'text',
+                placeholder: '逗号分隔，例如：代码,仓库,开发',
+                value: defaultKeywords,
+            },
+        ],
+    });
+
+    if (!values) return null;
+
+    return {
+        subId: trimToString(values.subId) || (hasSubs ? options[0].value : ''),
+        name: trimToString(values.name),
+        url: trimToString(values.url),
+        title: trimToString(values.title),
+        icon: trimToString(values.icon),
+        keywords: trimToString(values.keywords),
+    };
+}
+
+async function addLinkFromEditor(categoryIndex, subId = '') {
     const category = getEditableCategoryByIndex(categoryIndex);
     if (!category) return;
 
-    const newItem = await promptLinkData({
-        name: '',
-        url: '',
-        title: '',
-        icon: '',
-        keywords: '',
-    });
+    const newItem = await promptLinkDataWithSubcat({
+        name: '', url: '', title: '', icon: '', keywords: '',
+    }, categoryIndex, subId);
     if (!newItem) return;
 
-    category.items.push(newItem);
+    const targetSub = getEditableSubcategory(categoryIndex, newItem.subId) || getEditableSubcategory(categoryIndex, subId);
+    if (!targetSub) return;
+    if (!Array.isArray(targetSub.items)) targetSub.items = [];
+    targetSub.items.push({
+        name: newItem.name,
+        url: newItem.url,
+        title: newItem.title,
+        icon: newItem.icon,
+        keywords: newItem.keywords,
+    });
     applyEditorPreview();
 }
 
-function getEditableItem(categoryIndex, itemIndex) {
+function getEditableItem(categoryIndex, itemIndex, subId = '') {
     const category = getEditableCategoryByIndex(categoryIndex);
-    if (!category || !Array.isArray(category.items)) return null;
+    if (!category) return null;
+    const sub = subId
+        ? (category.subcategories || []).find(s => s && s.id === subId)
+        : (category.subcategories || [])[0];
+    if (!sub || !Array.isArray(sub.items)) return null;
     if (!Number.isInteger(itemIndex) || itemIndex < 0) return null;
-    return category.items[itemIndex] || null;
+    return sub.items[itemIndex] || null;
 }
 
-async function editLinkFromEditor(categoryIndex, itemIndex) {
-    const item = getEditableItem(categoryIndex, itemIndex);
+async function editLinkFromEditor(categoryIndex, itemIndex, subId = '') {
+    const item = getEditableItem(categoryIndex, itemIndex, subId);
     if (!item) return;
 
-    const updatedItem = await promptLinkData(item);
-    if (!updatedItem) return;
-    appState.editor.data.categories[categoryIndex].items[itemIndex] = updatedItem;
+    const updated = await promptLinkDataWithSubcat(item, categoryIndex, subId);
+    if (!updated) return;
+
+    const category = getEditableCategoryByIndex(categoryIndex);
+    if (!category) return;
+    const fromSub = (category.subcategories || []).find(s => s && s.id === subId);
+    const toSub = (category.subcategories || []).find(s => s && s.id === updated.subId) || fromSub;
+    if (!fromSub || !toSub) return;
+
+    const newItem = {
+        name: updated.name,
+        url: updated.url,
+        title: updated.title,
+        icon: updated.icon,
+        keywords: updated.keywords,
+    };
+
+    if (fromSub.id === toSub.id) {
+        fromSub.items[itemIndex] = newItem;
+    } else {
+        fromSub.items.splice(itemIndex, 1);
+        if (!Array.isArray(toSub.items)) toSub.items = [];
+        toSub.items.push(newItem);
+    }
     applyEditorPreview();
 }
 
-function deleteLinkFromEditor(categoryIndex, itemIndex) {
+function deleteLinkFromEditor(categoryIndex, itemIndex, subId = '') {
     const category = getEditableCategoryByIndex(categoryIndex);
     if (!category) return;
+    const sub = subId
+        ? (category.subcategories || []).find(s => s && s.id === subId)
+        : (category.subcategories || [])[0];
+    if (!sub || !Array.isArray(sub.items)) return;
 
-    const item = getEditableItem(categoryIndex, itemIndex);
+    const item = sub.items[itemIndex];
     if (!item) return;
 
     const confirmDelete = window.confirm(`确定删除链接「${item.name || '未命名链接'}」吗？`);
     if (!confirmDelete) return;
 
-    category.items.splice(itemIndex, 1);
+    sub.items.splice(itemIndex, 1);
     applyEditorPreview();
 }
 
@@ -3220,21 +3522,41 @@ function handleEditorDragStart(event) {
         return;
     }
 
+    const subcatDragHandle = event.target.closest('.subcat-drag-handle');
+    if (subcatDragHandle) {
+        const categoryIndex = Number(subcatDragHandle.dataset.categoryIndex);
+        const subId = subcatDragHandle.dataset.subId;
+        if (!Number.isInteger(categoryIndex) || !subId) return;
+
+        appState.editor.drag = {
+            type: 'subcategory',
+            categoryIndex,
+            subId,
+        };
+
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', `subcategory:${categoryIndex}:${subId}`);
+        document.body.classList.add('is-editor-dragging');
+        return;
+    }
+
     const navCard = event.target.closest('.nav-card');
     if (!navCard) return;
 
     const fromCategoryIndex = Number(navCard.dataset.categoryIndex);
     const fromItemIndex = Number(navCard.dataset.itemIndex);
+    const fromSubId = navCard.dataset.subId || '';
     if (!Number.isInteger(fromCategoryIndex) || !Number.isInteger(fromItemIndex)) return;
 
     appState.editor.drag = {
         type: 'item',
         fromCategoryIndex,
         fromItemIndex,
+        fromSubId,
     };
 
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', `item:${fromCategoryIndex}:${fromItemIndex}`);
+    event.dataTransfer.setData('text/plain', `item:${fromCategoryIndex}:${fromItemIndex}:${fromSubId}`);
     navCard.classList.add('is-dragging');
     document.body.classList.add('is-editor-dragging');
 }
@@ -3249,6 +3571,15 @@ function handleEditorDragOver(event) {
         event.preventDefault();
         clearEditorDropIndicators();
         category.classList.add('is-drop-target');
+        return;
+    }
+
+    if (appState.editor.drag.type === 'subcategory') {
+        const tab = event.target.closest('.subcat-tab');
+        if (!tab || tab.classList.contains('subcat-add-btn')) return;
+        event.preventDefault();
+        clearEditorDropIndicators();
+        tab.classList.add('is-drop-target');
         return;
     }
 
@@ -3310,6 +3641,55 @@ function handleEditorDrop(event) {
         return;
     }
 
+    if (appState.editor.drag.type === 'subcategory') {
+        const targetTab = event.target.closest('.subcat-tab');
+        if (!targetTab || targetTab.classList.contains('subcat-add-btn')) {
+            clearEditorDragState();
+            return;
+        }
+        const fromCatIdx = appState.editor.drag.categoryIndex;
+        const fromSubId = appState.editor.drag.subId;
+        const toCatIdx = Number(targetTab.dataset.categoryIndex);
+        const toSubId = targetTab.dataset.subId;
+        if (!Number.isInteger(fromCatIdx) || !Number.isInteger(toCatIdx) || !fromSubId || !toSubId) {
+            clearEditorDragState();
+            return;
+        }
+        if (fromCatIdx === toCatIdx && fromSubId === toSubId) {
+            clearEditorDragState();
+            return;
+        }
+
+        const cats = appState.editor.data.categories;
+        const fromCat = cats[fromCatIdx];
+        const toCat = cats[toCatIdx];
+        if (!fromCat || !toCat) {
+            clearEditorDragState();
+            return;
+        }
+        const fromSubs = Array.isArray(fromCat.subcategories) ? fromCat.subcategories : [];
+        const fromIdx = fromSubs.findIndex(s => s && s.id === fromSubId);
+        if (fromIdx === -1) {
+            clearEditorDragState();
+            return;
+        }
+
+        const [moved] = fromSubs.splice(fromIdx, 1);
+
+        if (fromCatIdx === toCatIdx) {
+            const toIdx = fromSubs.findIndex(s => s && s.id === toSubId);
+            fromSubs.splice(toIdx === -1 ? fromSubs.length : toIdx, 0, moved);
+        } else {
+            const toSubs = Array.isArray(toCat.subcategories) ? toCat.subcategories : (toCat.subcategories = []);
+            const toIdx = toSubs.findIndex(s => s && s.id === toSubId);
+            toSubs.splice(toIdx === -1 ? toSubs.length : toIdx, 0, moved);
+        }
+
+        clearEditorDragState();
+        applyEditorPreview();
+        return;
+    }
+
     if (appState.editor.drag.type === 'navLink') {
         const targetNav = event.target.closest('.header-link-wrapper');
         if (!targetNav) {
@@ -3349,18 +3729,27 @@ function handleEditorDrop(event) {
         const categories = appState.editor.data.categories;
         const sourceCategoryIndex = appState.editor.drag.fromCategoryIndex;
         const sourceItemIndex = appState.editor.drag.fromItemIndex;
+        const sourceSubId = appState.editor.drag.fromSubId || '';
         if (!Number.isInteger(sourceCategoryIndex) || !Number.isInteger(sourceItemIndex)) {
             clearEditorDragState();
             return;
         }
 
         const sourceCategory = categories[sourceCategoryIndex];
-        if (!sourceCategory || !Array.isArray(sourceCategory.items)) {
+        if (!sourceCategory) {
+            clearEditorDragState();
+            return;
+        }
+        const sourceSubs = Array.isArray(sourceCategory.subcategories) ? sourceCategory.subcategories : [];
+        const sourceSub = sourceSubId
+            ? sourceSubs.find(s => s && s.id === sourceSubId)
+            : sourceSubs[0];
+        if (!sourceSub || !Array.isArray(sourceSub.items)) {
             clearEditorDragState();
             return;
         }
 
-        const [movedItem] = sourceCategory.items.splice(sourceItemIndex, 1);
+        const [movedItem] = sourceSub.items.splice(sourceItemIndex, 1);
         if (!movedItem) {
             clearEditorDragState();
             return;
@@ -3368,24 +3757,40 @@ function handleEditorDrop(event) {
 
         let targetCategoryIndex;
         let targetItemIndex;
+        let targetSubId = '';
         if (targetCard) {
             targetCategoryIndex = Number(targetCard.dataset.categoryIndex);
             targetItemIndex = Number(targetCard.dataset.itemIndex);
+            targetSubId = targetCard.dataset.subId || '';
         } else {
             targetCategoryIndex = Number(targetGrid.dataset.categoryIndex);
             targetItemIndex = Number.MAX_SAFE_INTEGER;
+            targetSubId = targetGrid.dataset.subId || '';
         }
 
-        if (!Number.isInteger(targetCategoryIndex) || !categories[targetCategoryIndex]) {
-            sourceCategory.items.splice(sourceItemIndex, 0, movedItem);
+        const targetCategory = categories[targetCategoryIndex];
+        if (!targetCategory) {
+            sourceSub.items.splice(sourceItemIndex, 0, movedItem);
             clearEditorDragState();
             return;
         }
+        const targetSubs = Array.isArray(targetCategory.subcategories) ? targetCategory.subcategories : [];
+        let targetSub = targetSubId
+            ? targetSubs.find(s => s && s.id === targetSubId)
+            : null;
+        if (!targetSub) targetSub = targetSubs[0];
+        if (!targetSub) {
+            sourceSub.items.splice(sourceItemIndex, 0, movedItem);
+            clearEditorDragState();
+            return;
+        }
+        if (!Array.isArray(targetSub.items)) targetSub.items = [];
 
-        const targetItems = categories[targetCategoryIndex].items;
+        const targetItems = targetSub.items;
         let insertAt = Number.isInteger(targetItemIndex) ? targetItemIndex : targetItems.length;
 
-        if (sourceCategoryIndex === targetCategoryIndex && sourceItemIndex < insertAt) {
+        const sameSub = sourceCategoryIndex === targetCategoryIndex && sourceSub.id === targetSub.id;
+        if (sameSub && sourceItemIndex < insertAt) {
             insertAt -= 1;
         }
 
@@ -3721,16 +4126,29 @@ function renderNav(data, searchTerm = '') {
     let hasResults = false;
 
     data.categories.forEach((category, categoryIndex) => {
-        const safeItems = Array.isArray(category.items) ? category.items : [];
-        const filteredItems = effectiveSearchTerm
-            ? safeItems.filter(item => itemMatchesSearch(item, effectiveSearchTerm))
-            : safeItems;
+        const safeSubs = Array.isArray(category.subcategories) && category.subcategories.length > 0
+            ? category.subcategories
+            : [{ id: generateSubcategoryId(), name: '默认', items: [] }];
 
-        if (!appState.editor.active && filteredItems.length === 0) return;
+        // 计算每个子分类的过滤后 items
+        const subViews = safeSubs.map(sub => {
+            const subItems = Array.isArray(sub.items) ? sub.items : [];
+            const filtered = effectiveSearchTerm
+                ? subItems.filter(item => itemMatchesSearch(item, effectiveSearchTerm))
+                : subItems;
+            return { id: sub.id, name: sub.name, items: filtered };
+        });
+
+        // 非编辑模式下跳过完全没有匹配项的分类
+        if (!appState.editor.active && subViews.every(sv => sv.items.length === 0)) return;
         hasResults = true;
 
         const catId = `category-${categoryIndex}`;
         const categoryName = trimToString(category.name) || `分类 ${categoryIndex + 1}`;
+        const totalFiltered = subViews.reduce((sum, sv) => sum + sv.items.length, 0);
+        // 仅一个子分类时（非编辑模式），标记以便 CSS 隐藏冗余标签
+        const isSingleDefault = !appState.editor.active && safeSubs.length === 1;
+
         const categoryTools = appState.editor.active ? `
             <span class="category-editor-tools">
                 <button type="button" class="editor-inline-btn" data-editor-action="add-link" data-category-index="${categoryIndex}">+ 链接</button>
@@ -3740,16 +4158,65 @@ function renderNav(data, searchTerm = '') {
             </span>
         ` : '';
 
+        // 决定激活的子分类 id：读取 localStorage 记忆（编辑/非编辑模式均生效）
+        const remembered = recallActiveSubcat(categoryIndex);
+        const matched = remembered && subViews.find(sv => sv.id === remembered);
+        let activeSubId = matched ? remembered : subViews[0].id;
+
+        // 子分类标签
+        const tabsHtml = subViews.map(sv => {
+            const isActive = sv.id === activeSubId;
+            // 非编辑模式且该子分类无内容时，仍然显示（用户可手动切换查看），但激活态优先有内容的
+            const tabTools = appState.editor.active ? `
+                    <button type="button" class="editor-inline-btn mini subcat-btn-edit" data-editor-action="edit-subcategory" data-category-index="${categoryIndex}" data-sub-id="${escapeHtml(sv.id)}" title="重命名">✎</button>
+                    <button type="button" class="editor-inline-btn mini danger subcat-btn-delete" data-editor-action="delete-subcategory" data-category-index="${categoryIndex}" data-sub-id="${escapeHtml(sv.id)}" title="删除">✕</button>
+                    <span class="editor-inline-btn mini subcat-drag-handle" draggable="true" data-category-index="${categoryIndex}" data-sub-id="${escapeHtml(sv.id)}" title="拖拽排序">⋮⋮</span>
+            ` : '';
+            return `<span class="subcat-row${appState.editor.active ? ' editor-subcat-row' : ''}">
+                        <button type="button"
+                            class="subcat-tab${isActive ? ' active' : ''}"
+                            data-category-index="${categoryIndex}"
+                            data-sub-id="${escapeHtml(sv.id)}">
+                            <span class="subcat-tab-name">${escapeHtml(sv.name)}</span>
+                            <span class="subcat-tab-count">(${sv.items.length})</span>
+                        </button>
+                        ${tabTools}
+                    </span>`;
+        }).join('');
+
+        // 新增子分类按钮（编辑模式）
+        const addSubcatBtn = appState.editor.active
+            ? `<button type="button" class="subcat-tab subcat-add-btn" data-editor-action="add-subcategory" data-category-index="${categoryIndex}">+ 子分类</button>`
+            : '';
+
+        // 每个子分类对应一个 grid 容器，激活的显示，其他隐藏
+        const gridsHtml = subViews.map(sv => {
+            const isActive = sv.id === activeSubId;
+            const inner = sv.items.map((item, itemIndex) => createNavCard(item, categoryIndex, itemIndex, sv.id)).join('');
+            const addTile = appState.editor.active
+                ? `<button type="button" class="editor-add-link-tile" data-editor-action="add-link" data-category-index="${categoryIndex}" data-sub-id="${escapeHtml(sv.id)}">+ 新增链接</button>`
+                : '';
+            return `<div class="nav-grid${isActive ? '' : ' is-hidden'}"
+                        data-category-index="${categoryIndex}"
+                        data-sub-id="${escapeHtml(sv.id)}">
+                        ${inner}
+                        ${addTile}
+                    </div>`;
+        }).join('');
+
         html += `
             <section class="category${appState.editor.active ? ' editor-category' : ''}" id="${catId}" data-category-index="${categoryIndex}">
                 <h2 class="category-title">
                     <span class="category-title-text">${escapeHtml(categoryName)}</span>
-                    <span class="category-count">(${filteredItems.length})</span>
+                    <span class="category-count">(${totalFiltered})</span>
                     ${categoryTools}
                 </h2>
-                <div class="nav-grid" data-category-index="${categoryIndex}">
-                    ${filteredItems.map((item, itemIndex) => createNavCard(item, categoryIndex, itemIndex)).join('')}
-                    ${appState.editor.active ? `<button type="button" class="editor-add-link-tile" data-editor-action="add-link" data-category-index="${categoryIndex}">+ 新增链接</button>` : ''}
+                <div class="subcategory-tabs${isSingleDefault ? ' is-single-default' : ''}" data-category-index="${categoryIndex}">
+                    ${tabsHtml}
+                    ${addSubcatBtn}
+                </div>
+                <div class="nav-grids" data-category-index="${categoryIndex}">
+                    ${gridsHtml}
                 </div>
             </section>
         `;
@@ -3783,15 +4250,51 @@ function renderNav(data, searchTerm = '') {
 
     if (hasResults) {
         setupSidebar();
+        setupSubcatTabs();
     }
 }
 
-function createNavCard(item, categoryIndex, itemIndex) {
+// 子分类标签切换：点击非编辑态 tab 切换激活 grid；记忆到 localStorage
+function setupSubcatTabs() {
+    const tabs = document.querySelectorAll('.subcat-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            // 编辑模式下，点击 tab 上的工具按钮不切换
+            if (appState.editor.active) {
+                const tool = e.target.closest('.subcat-editor-tools');
+                if (tool) return;
+            }
+
+            const categoryIndex = Number(tab.dataset.categoryIndex);
+            const subId = tab.dataset.subId;
+            if (!Number.isInteger(categoryIndex) || !subId) return;
+
+            const section = document.getElementById(`category-${categoryIndex}`);
+            if (!section) return;
+
+            // 切换 active
+            section.querySelectorAll('.subcat-tab').forEach(t => {
+                if (t.dataset.subId === subId) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+            section.querySelectorAll('.nav-grid').forEach(g => {
+                if (g.dataset.subId === subId) g.classList.remove('is-hidden');
+                else g.classList.add('is-hidden');
+            });
+
+            // 编辑/非编辑模式均记忆
+            rememberActiveSubcat(categoryIndex, subId);
+        });
+    });
+}
+
+function createNavCard(item, categoryIndex, itemIndex, subId = '') {
     const iconHtml = getIconHtml(item.icon);
     const name = trimToString(item.name) || '未命名链接';
     const title = trimToString(item.title) || name;
     const url = trimToString(item.url) || '#';
     const editable = appState.editor.active;
+    const subAttr = subId ? ` data-sub-id="${escapeHtml(subId)}"` : '';
 
     return `
         <a href="${escapeHtml(url)}"
@@ -3799,13 +4302,13 @@ function createNavCard(item, categoryIndex, itemIndex) {
            title="${escapeHtml(title)}"
            target="_blank"
            rel="nofollow noopener noreferrer"
-           ${editable ? `draggable="true" data-category-index="${categoryIndex}" data-item-index="${itemIndex}"` : ''}>
+           ${editable ? `draggable="true" data-category-index="${categoryIndex}" data-item-index="${itemIndex}"${subAttr}` : ''}>
             <div class="nav-icon">${iconHtml}</div>
             <div class="nav-name">${escapeHtml(name)}</div>
             ${editable ? `
                 <div class="card-editor-actions">
-                    <button type="button" class="editor-inline-btn" data-editor-action="edit-link" data-category-index="${categoryIndex}" data-item-index="${itemIndex}">编辑</button>
-                    <button type="button" class="editor-inline-btn danger" data-editor-action="delete-link" data-category-index="${categoryIndex}" data-item-index="${itemIndex}">删除</button>
+                    <button type="button" class="editor-inline-btn" data-editor-action="edit-link" data-category-index="${categoryIndex}" data-item-index="${itemIndex}"${subAttr}>编辑</button>
+                    <button type="button" class="editor-inline-btn danger" data-editor-action="delete-link" data-category-index="${categoryIndex}" data-item-index="${itemIndex}"${subAttr}>删除</button>
                 </div>
             ` : ''}
         </a>
@@ -3817,8 +4320,8 @@ function createNavCard(item, categoryIndex, itemIndex) {
 
 function renderSubmenuEditorRow(child = {}, index) {
     return `
-        <div class="submenu-editor-item" draggable="true" data-index="${index}">
-            <div class="submenu-drag-handle">≡</div>
+        <div class="submenu-editor-item" data-index="${index}">
+            <div class="submenu-drag-handle" draggable="true">≡</div>
             <input type="text" class="sub-name" placeholder="名称" value="${escapeHtml(child.name || '')}">
             <input type="text" class="sub-url" placeholder="链接" value="${escapeHtml(child.url || '')}">
             <select class="sub-target">
@@ -3856,9 +4359,14 @@ function initModalSubmenuEditorActions() {
         }
     });
 
-    // 子菜单内部拖拽排序
+    // 子菜单内部拖拽排序（仅拖拽手柄可触发）
     list.ondragstart = (e) => {
-        const item = e.target.closest('.submenu-editor-item');
+        const handle = e.target.closest('.submenu-drag-handle');
+        if (!handle) {
+            e.preventDefault();
+            return;
+        }
+        const item = handle.closest('.submenu-editor-item');
         if (item) {
             appState.editor.modalDragIndex = Array.from(list.children).indexOf(item);
             e.dataTransfer.effectAllowed = 'move';

@@ -6,6 +6,27 @@
   "description": "默默导航的演示",
   "glyphs": [
     {
+      "icon_id": "25505229",
+      "name": "Vercel",
+      "font_class": "Vercel",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "27243683",
+      "name": "cloudflare",
+      "font_class": "cloudflare",
+      "unicode": "e7be",
+      "unicode_decimal": 59326
+    },
+    {
+      "icon_id": "26785871",
+      "name": "中央CCTV",
+      "font_class": "cctv",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
       "icon_id": "3176645",
       "name": "GitHub",
       "font_class": "GitHub",

@@ -1,22 +1,5 @@
 {
   "siteName": "默默导航",
-  "navLinks": [
-    {
-      "name": "莫莫先生",
-      "url": "https://ihcll.cn",
-      "target": "_blank"
-    },
-    {
-      "name": "演示项目",
-      "children": [
-        {
-          "name": "momo-nav 仓库",
-          "url": "https://github.com/hcllmsx/momo-nav",
-          "target": "_blank"
-        }
-      ]
-    }
-  ],
   "footerName": "默默导航",
   "siteDescription": "这里是一个导航网站的描述文字",
   "siteKeywords": "默默导航,收藏夹,书签,起始页",
@@ -26,6 +9,10 @@
     "icon192": "mn-src/momonav-icon-192px.png",
     "icon512": "mn-src/momonav-icon-512px.png"
   },
+  "logo": {
+    "img": "mn-src/momonav-text.svg",
+    "height": 28
+  },
   "theme": {
     "primaryColor": "#4a90d9"
   },
@@ -33,56 +20,116 @@
     "texture": "mn-src/grid-me.png",
     "opacity": 0.3
   },
-  "logo": {
-    "img": "mn-src/momonav-text.svg",
-    "height": 28
-  },
   "iconfont": {
     "type": "local",
-    "url": "font_5159256_rrq7qj12zp",
+    "url": "font_5159256_qwrznnaafin",
     "prefix": "icon-"
   },
-  "categories": [
+  "navLinks": [
     {
-      "name": "❤️ 默默导航演示站点",
-      "items": [
-        {
-          "name": "默默导航",
-          "url": "https://123.ihcll.cn",
-          "title": "默默导航演示站点",
-          "keywords": "mm"
-        }
-      ]
+      "name": "莫莫先生",
+      "url": "https://ihcll.cn",
+      "target": "_blank"
     },
     {
-      "name": "🧰 工具",
-      "items": [
+      "name": "演示项目",
+      "target": "_self",
+      "url": "",
+      "children": [
         {
-          "name": "默默导航GitHub",
+          "name": "默默导航 仓库",
           "url": "https://github.com/hcllmsx/momo-nav",
-          "title": "默默导航GitHub仓库",
-          "icon": "icon-momonav-icon"
+          "target": "_blank"
         },
         {
-          "name": "GitHub",
-          "url": "https://github.com",
-          "title": "代码托管平台",
-          "keywords": [
-            "仓库",
-            "gayhub"
-          ],
-          "icon": "https://api.iconify.design/mdi:github.svg"
+          "name": "默默图床 仓库",
+          "url": "https://github.com/hcllmsx/momoimage",
+          "target": "_blank"
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "name": "❤️ 这是父分类名",
+      "subcategories": [
+        {
+          "id": "sub-default",
+          "name": "默认",
+          "items": [
+            {
+              "name": "默默导航",
+              "url": "https://123.ihcll.cn",
+              "title": "默默导航演示站点",
+              "keywords": "mm"
+            },
+            {
+              "name": "本项目仓库",
+              "url": "https://github.com/hcllmsx/momo-nav",
+              "title": "默默导航GitHub仓库",
+              "icon": "icon-momonav-icon"
+            }
+          ]
+        },
+        {
+          "id": "sub-dmkf",
+          "name": "代码开发",
+          "items": [
+            {
+              "name": "GitHub",
+              "url": "https://github.com",
+              "title": "代码托管平台",
+              "icon": "https://api.iconify.design/mdi:github.svg",
+              "keywords": "仓库,gayhub"
+            },
+            {
+              "name": "默默图床",
+              "url": "https://github.com/hcllmsx/momoimage",
+              "title": "默默图床是一个现代化、全栈图片托管系统。",
+              "icon": "https://zy.ihcll.cn/i/momoimageVercel/202606/18/q4g5qp/momoimage-icon.svg"
+            },
+            {
+              "name": "Cloudflare",
+              "url": "https://dash.cloudflare.com/",
+              "title": "Cloudflare，随时随地连⁠接、保⁠护、构建。我们使网站、应用、AI 智能体和网络更快、更安全。我们敏捷的 SASE 平台可加速安全的 AI 采用，我们的开发人员平台是构建、运行和部署 AI 应用的最佳平台。",
+              "icon": "icon-cloudflare"
+            },
+            {
+              "name": "Vercel",
+              "url": "https://vercel.com/",
+              "title": "Vercel 是一个云平台，用于构建、部署和托管现代 Web 应用程序",
+              "icon": "icon-Vercel"
+            }
+          ]
         }
       ]
     },
     {
-      "name": "🎨 设计",
-      "items": [
+      "name": "🤦‍♂️ 不想命名了",
+      "subcategories": [
         {
-          "name": "iconfont",
-          "url": "https://www.iconfont.cn/",
-          "title": "iconfont图标库",
-          "icon": "icon-iconfont"
+          "id": "sub-bxfl",
+          "name": "不想分类",
+          "items": [
+            {
+              "name": "CCTV直播",
+              "url": "https://tv.cctv.com/live/cctv13/",
+              "title": "提供CCTV新闻频道在线直播及电视节目表预告等服务,中央电视台新闻频道全天24小时播出,以最快的速度向观众提供第一手的国内国际新闻资讯,突出时效性和信息量,实现滚动、递进、更新式报道。",
+              "icon": "icon-cctv"
+            },
+            {
+              "name": "等着我",
+              "url": "https://tv.cctv.com/lm/dzw/",
+              "title": "中央电视台《等着我》国家力量全媒体公益寻人平台,是中国唯一一档利用国家力量为普通大众实现“团圆梦”的大型服务类节目。央视网作为中央电视台独家官网网站,搭建《等着我》唯一官方网站,承担寻人报名平台和线索提供平台。",
+              "icon": "https://zy.ihcll.cn/i/momoimageVercel/202606/18/p1c6gf/dengzhewo.webp"
+            },
+            {
+              "name": "iconfont",
+              "url": "https://www.iconfont.cn/",
+              "title": "iconfont-国内功能很强大且图标内容很丰富的矢量图标库，提供矢量图标下载、在线存储、格式转换等功能。阿里巴巴体验团队倾力打造，设计和前端开发的便捷工具",
+              "icon": "icon-iconfont"
+            }
+          ]
         }
       ]
     }
