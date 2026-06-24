@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.06.18.1232';
+const APP_VERSION = '2026.06.24.1715';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -810,16 +810,21 @@ function normalizeItemKeywords(keywords) {
     return [];
 }
 
-function itemMatchesSearch(item, searchTerm) {
-    if (!searchTerm) return true;
-
+// 返回匹配优先级：1=name 2=keywords 3=url 4=title 0=不匹配（数值越小优先级越高）
+function itemSearchMatchScore(item, searchTerm) {
+    if (!searchTerm) return 1; // 无搜索词时全部视为 name 级别匹配
     const term = searchTerm.toLowerCase();
-    const keywords = normalizeItemKeywords(item.keywords);
 
-    return String(item.name || '').toLowerCase().includes(term) ||
-        String(item.title || '').toLowerCase().includes(term) ||
-        String(item.url || '').toLowerCase().includes(term) ||
-        keywords.some(keyword => keyword.includes(term));
+    if (String(item.name || '').toLowerCase().includes(term)) return 1;
+    const keywords = normalizeItemKeywords(item.keywords);
+    if (keywords.some(keyword => keyword.includes(term))) return 2;
+    if (String(item.url || '').toLowerCase().includes(term)) return 3;
+    if (String(item.title || '').toLowerCase().includes(term)) return 4;
+    return 0;
+}
+
+function itemMatchesSearch(item, searchTerm) {
+    return itemSearchMatchScore(item, searchTerm) > 0;
 }
 
 
@@ -4130,13 +4135,18 @@ function renderNav(data, searchTerm = '') {
             ? category.subcategories
             : [{ id: generateSubcategoryId(), name: '默认', items: [] }];
 
-        // 计算每个子分类的过滤后 items
+        // 计算每个子分类的过滤后 items（搜索模式下按匹配优先级排序）
         const subViews = safeSubs.map(sub => {
             const subItems = Array.isArray(sub.items) ? sub.items : [];
-            const filtered = effectiveSearchTerm
-                ? subItems.filter(item => itemMatchesSearch(item, effectiveSearchTerm))
-                : subItems;
-            return { id: sub.id, name: sub.name, items: filtered };
+            if (effectiveSearchTerm) {
+                const scored = subItems
+                    .map(item => ({ item, score: itemSearchMatchScore(item, effectiveSearchTerm) }))
+                    .filter(entry => entry.score > 0)
+                    .sort((a, b) => a.score - b.score)
+                    .map(entry => entry.item);
+                return { id: sub.id, name: sub.name, items: scored };
+            }
+            return { id: sub.id, name: sub.name, items: [...subItems] };
         });
 
         // 非编辑模式下跳过完全没有匹配项的分类
@@ -4158,10 +4168,20 @@ function renderNav(data, searchTerm = '') {
             </span>
         ` : '';
 
-        // 决定激活的子分类 id：读取 localStorage 记忆（编辑/非编辑模式均生效）
-        const remembered = recallActiveSubcat(categoryIndex);
-        const matched = remembered && subViews.find(sv => sv.id === remembered);
-        let activeSubId = matched ? remembered : subViews[0].id;
+        // 决定激活的子分类 id
+        // - 搜索模式下：优先记忆的子分类（有结果时），否则选第一个有结果的子分类
+        // - 非搜索模式：读取 localStorage 记忆，找不到则选第一个
+        let activeSubId;
+        if (effectiveSearchTerm && !appState.editor.active) {
+            const remembered = recallActiveSubcat(categoryIndex);
+            const rememberedHasResults = remembered && subViews.find(sv => sv.id === remembered && sv.items.length > 0);
+            const firstWithResults = subViews.find(sv => sv.items.length > 0);
+            activeSubId = rememberedHasResults ? remembered : (firstWithResults ? firstWithResults.id : subViews[0].id);
+        } else {
+            const remembered = recallActiveSubcat(categoryIndex);
+            const matched = remembered && subViews.find(sv => sv.id === remembered);
+            activeSubId = matched ? remembered : subViews[0].id;
+        }
 
         // 子分类标签
         const tabsHtml = subViews.map(sv => {
