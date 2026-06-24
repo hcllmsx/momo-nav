@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.06.24.1715';
+const APP_VERSION = '2026.06.24.1731';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -4142,11 +4142,11 @@ function renderNav(data, searchTerm = '') {
                 const scored = subItems
                     .map(item => ({ item, score: itemSearchMatchScore(item, effectiveSearchTerm) }))
                     .filter(entry => entry.score > 0)
-                    .sort((a, b) => a.score - b.score)
-                    .map(entry => entry.item);
-                return { id: sub.id, name: sub.name, items: scored };
+                    .sort((a, b) => a.score - b.score);
+                const bestScore = scored.length > 0 ? scored[0].score : null; // null=无命中，1=最佳(name)
+                return { id: sub.id, name: sub.name, items: scored.map(entry => entry.item), bestScore };
             }
-            return { id: sub.id, name: sub.name, items: [...subItems] };
+            return { id: sub.id, name: sub.name, items: [...subItems], bestScore: null };
         });
 
         // 非编辑模式下跳过完全没有匹配项的分类
@@ -4169,14 +4169,22 @@ function renderNav(data, searchTerm = '') {
         ` : '';
 
         // 决定激活的子分类 id
-        // - 搜索模式下：优先记忆的子分类（有结果时），否则选第一个有结果的子分类
+        // - 搜索模式下：选匹配优先级最高的子分类（name>keywords>url>title），同优先级时保留记忆位置
         // - 非搜索模式：读取 localStorage 记忆，找不到则选第一个
         let activeSubId;
         if (effectiveSearchTerm && !appState.editor.active) {
             const remembered = recallActiveSubcat(categoryIndex);
-            const rememberedHasResults = remembered && subViews.find(sv => sv.id === remembered && sv.items.length > 0);
-            const firstWithResults = subViews.find(sv => sv.items.length > 0);
-            activeSubId = rememberedHasResults ? remembered : (firstWithResults ? firstWithResults.id : subViews[0].id);
+            // 找出所有有结果的子分类中的最优得分（数值越小越好）
+            const withResults = subViews.filter(sv => sv.items.length > 0);
+            const bestScore = withResults.length > 0 ? Math.min(...withResults.map(sv => sv.bestScore)) : null;
+            // 记忆的子分类是否达到最优得分
+            const rememberedSub = remembered && subViews.find(sv => sv.id === remembered);
+            if (rememberedSub && rememberedSub.bestScore === bestScore) {
+                activeSubId = remembered;
+            } else {
+                const best = withResults.find(sv => sv.bestScore === bestScore);
+                activeSubId = best ? best.id : subViews[0].id;
+            }
         } else {
             const remembered = recallActiveSubcat(categoryIndex);
             const matched = remembered && subViews.find(sv => sv.id === remembered);
