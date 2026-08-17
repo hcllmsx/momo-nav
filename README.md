@@ -43,9 +43,34 @@ Demo：https://momo-nav.msx.cc.cd/
 
 3. **部署**：将整个文件夹上传到任意静态托管服务（GitHub Pages、Vercel、Netlify 等）
 
+## 🛠️ 版本号与部署脚本
+
+本仓库自带一组 Node 脚本，用于刷新版本号和缓存时间戳。无需安装任何依赖，只要你有 Node.js 就能跑。三种使用形态都能自动识别：
+
+- **直接用本仓库**（纯使用者）：Fork 本仓库后，把 `example.json` 改名为 `momo-nav.json` 并填入你的数据，然后直接在仓库根目录运行下面的命令。
+- **作为子目录**（数据仓维护者）：把本仓库作为子目录或 submodule 放在你的数据仓里，在**数据仓根目录**运行下面的命令，脚本会自动识别 `core-momo-nav/` 子目录并从中同步文件。
+
+| 命令 | 作用 | 什么时候用 |
+|------|------|-----------|
+| `npm run sync` | 同步核心文件到根目录（子目录形态下）；刷新 `?v=` 缓存时间戳；从 `momo-nav.json` 的 `updatedAt` 派生 `DATA_VERSION` 写入 `index.html`；读 `VERSION` 写入 `app.js` 的 `APP_VERSION` | 预览前、部署前 |
+| `npm run data` | 用当前时间刷新 `momo-nav.json` 的 `updatedAt` | **改了导航数据后、部署前** |
+| `npm run version` | 用当前时间更新 `VERSION` 文件 | **改了核心代码后、推送前** |
+
+### 版本号体系
+
+页脚 "MOMO-NAV" 链接悬停时会显示 `数据版本: xxx | 核心版本: xxx`：
+
+| 版本号 | 来源 | 含义 |
+|--------|------|------|
+| **核心版本** (`APP_VERSION`) | `VERSION` 文件 | 你最后一次发布核心引擎的时间 |
+| **数据版本** (`DATA_VERSION`) | 从 `momo-nav.json` 的 `updatedAt` 派生（`YYYY.MM.DD.HHMM`，东八区） | 你最后一次修改导航数据的时间 |
+| **updatedAt** | `momo-nav.json` 的 `updatedAt` 字段（ISO 8601） | 唯一时间源，供版本切换开关使用 |
+
+> 关键设计：`updatedAt` 是唯一的时间源，**不在 sync 时自动生成**，而是由 `npm run data` 单独维护。前端展示的数据版本号由 sync 脚本从它格式化派生。这样 Vercel 即使重复部署（比如你只改了 README），也不会误伤导航数据的时间戳。
+
 ## 📝 支持可视化编辑
 
-在导航页面按Ctrl+F9即可显示进入编辑模式的按钮（位置在左上角logo右边），点击即可开始可视化编辑。
+在导航页面按 **Ctrl+F9** 即可显示进入编辑模式的按钮（位置在左上角logo右边），点击即可开始可视化编辑。
 
 ### 顶部导航菜单编辑
 进入编辑模式后，页头菜单支持“所见即所得”的编辑：
@@ -115,11 +140,11 @@ Demo：https://momo-nav.msx.cc.cd/
 
 ## vercel部署
 
-一般正常部署即可，但想必你也是注意到了这个仓库的目录下有`vercel.json`文件，和`scripts/`文件夹，这个似乎不是正常静态网站部署所必须的。
+一般正常部署即可，但想必你也是注意到了这个仓库的目录下有`vercel.json`文件，以及`scripts/`文件夹，这个似乎不是正常静态网站部署所必须的。
 
 那么，你如果想要玩点花活儿，可以参考：[Vercel构建时从 Vercel Blob 中拉取资源的实践](https://ihcll.cn/posts/use-vercel-blob-storage-for-build-time-assets/)，这里说明了这个是干啥的。
 
-但只想安安静静的用一下导航，正常部署，大可不必理会，你甚至可以删掉这些文件。
+但只想安安静静的用一下导航，正常部署，大可不必理会。
 
 ## 📄 许可证
 

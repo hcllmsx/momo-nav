@@ -1,7 +1,7 @@
 // 默默导航 - 主逻辑脚本
 
 // 应用程序版本号
-const APP_VERSION = '2026.06.24.1731';
+const APP_VERSION = '2026.08.17.1218';
 
 // 全局应用状态，避免过多全局变量
 const appState = {
@@ -9,6 +9,13 @@ const appState = {
     iconfontLoaded: false,
     hasIconfontConfig: false,
     iconfontPrefix: 'icon-',
+    // 版本切换：当本地草稿比服务器旧时，允许用户在本地草稿与服务器最新版之间切换
+    versionSwitch: {
+        fileData: null,       // 服务器返回的原始数据（momo-nav.json）
+        fileUpdatedAt: '',    // 服务器数据的时间戳（来自 fileData.updatedAt）
+        draftUpdatedAt: '',   // 本地草稿的时间戳（来自 localStorage 草稿的 updatedAt）
+        activeSource: 'draft' // 'draft' = 本地草稿；'file' = 服务器最新
+    }
 };
 
 // 暴露状态到全局，供自定义功能使用
@@ -1383,6 +1390,7 @@ applySiteConfig = async function applySiteConfigWithReset(data) {
 document.addEventListener('DOMContentLoaded', () => {
     initEditorUi();
     bindEditorGlobalEvents();
+    initVersionSwitchEvents();
 });
 
 function isDesktopEditorViewport() {
@@ -2441,8 +2449,8 @@ async function verifyEditorPassword(actionName) {
     const currentData = appState.editor.data || appState.navData;
     const password = trimToString(currentData.password);
 
-    // 校验规则：6-16位字符
-    const isValid = password.length >= 6 && password.length <= 16;
+    // 校验规则：任意非空字符即可启用保护
+    const isValid = password.length > 0;
     if (!isValid) return true;
 
     // 检查缓存
@@ -3922,6 +3930,162 @@ function clearEditorDraftWithConfirm() {
     window.location.reload();
 }
 
+// =========================
+// 版本切换：本地草稿 ↔ 服务器最新
+// =========================
+// 当本地存在编辑草稿、且服务器 momo-nav.json 的 updatedAt 比草稿新时，
+// 在左上角 logo 后显示一个开关，允许用户在"本地草稿"与"服务器最新版"之间切换。
+const VERSION_SWITCH_KEY = 'momoNavVersionSource'; // 记住用户的选择：'draft' | 'file'
+
+// 解析 ISO 时间戳为毫秒数，非法时返回 0
+function parseTimestamp(value) {
+    if (!value) return 0;
+    const t = Date.parse(value);
+    return Number.isFinite(t) ? t : 0;
+}
+
+// 判断是否需要显示版本切换开关
+function shouldShowVersionSwitch() {
+    const vs = appState.versionSwitch;
+    if (!vs) return false;
+    if (!vs.fileData) return false;
+    if (!vs.draftUpdatedAt) return false; // 没有草稿就不显示
+    // 服务器时间戳必须大于草稿时间戳
+    return parseTimestamp(vs.fileUpdatedAt) > parseTimestamp(vs.draftUpdatedAt);
+}
+
+// 初始化版本切换状态：记录服务器原始数据和时间戳
+function initVersionSwitch(fileData) {
+    const vs = appState.versionSwitch;
+    vs.fileData = fileData;
+    vs.fileUpdatedAt = trimToString(fileData && fileData.updatedAt);
+
+    // 从 localStorage 读取草稿的时间戳
+    try {
+        const raw = localStorage.getItem(EDITOR_DRAFT_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            vs.draftUpdatedAt = trimToString(parsed && parsed.updatedAt);
+        } else {
+            vs.draftUpdatedAt = '';
+        }
+    } catch (e) {
+        vs.draftUpdatedAt = '';
+    }
+
+    // 读取用户上次的选择（仅当存在切换需求时才生效）
+    const saved = localStorage.getItem(VERSION_SWITCH_KEY);
+    if (saved === 'file' && shouldShowVersionSwitch()) {
+        vs.activeSource = 'file';
+    } else {
+        vs.activeSource = 'draft';
+    }
+
+    console.log('版本切换检测：', {
+        服务器版本: vs.fileUpdatedAt || '(未配置)',
+        本地草稿版本: vs.draftUpdatedAt || '(无草稿)',
+        是否显示开关: shouldShowVersionSwitch(),
+        当前来源: vs.activeSource
+    });
+}
+
+// 渲染（或隐藏）版本切换开关
+function renderVersionSwitchState() {
+    const toggle = document.getElementById('versionSwitch');
+    if (!toggle) return;
+
+    if (!shouldShowVersionSwitch()) {
+        toggle.classList.remove('is-visible');
+        toggle.setAttribute('aria-hidden', 'true');
+        return;
+    }
+
+    const vs = appState.versionSwitch;
+    toggle.classList.add('is-visible');
+    toggle.setAttribute('aria-hidden', 'false');
+
+    // 同步开关状态
+    const input = toggle.querySelector('.version-switch-input');
+    if (input) {
+        input.checked = (vs.activeSource === 'file');
+    }
+
+    // 更新标签文案
+    const labelEl = toggle.querySelector('.version-switch-label');
+    if (labelEl) {
+        labelEl.textContent = vs.activeSource === 'file' ? '服务器版' : '本地版';
+    }
+
+    // 日期提示
+    const hintEl = toggle.querySelector('.version-switch-hint');
+    if (hintEl) {
+        const fileTime = vs.fileUpdatedAt ? new Date(parseTimestamp(vs.fileUpdatedAt)) : null;
+        const draftTime = vs.draftUpdatedAt ? new Date(parseTimestamp(vs.draftUpdatedAt)) : null;
+        const fmt = (d) => d
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            : '—';
+        hintEl.textContent = `本地 ${fmt(draftTime)} · 服务器 ${fmt(fileTime)}`;
+        hintEl.title = `本地草稿更新时间：${vs.draftUpdatedAt || '—'}\n服务器更新时间：${vs.fileUpdatedAt || '—'}`;
+    }
+}
+
+// 切换到指定来源（'draft' 或 'file'），并重渲染 UI
+async function switchToVersion(source) {
+    const vs = appState.versionSwitch;
+    if (!vs) return;
+    if (source !== 'draft' && source !== 'file') return;
+    if (!shouldShowVersionSwitch()) return;
+
+    vs.activeSource = source;
+    localStorage.setItem(VERSION_SWITCH_KEY, source);
+
+    if (source === 'draft') {
+        // 回到本地草稿：用草稿数据重建编辑器状态
+        applyEditorDraftState(vs.fileData);
+        appState.navData = buildConfigFromEditorState();
+        // 重新挂载非标准扩展字段（customFeatures 等）
+        if (vs.fileData) {
+            const standardKeys = ['siteName', 'footerName', 'siteDescription', 'siteKeywords', 'logo', 'background', 'theme', 'iconfont', 'fontawesome', 'webAppIcons', 'navLinks', 'categories', 'cover'];
+            Object.keys(vs.fileData).forEach(key => {
+                if (!standardKeys.includes(key)) {
+                    appState.navData[key] = vs.fileData[key];
+                }
+            });
+        }
+    } else {
+        // 切到服务器版：用服务器原始数据重建编辑器状态（但不覆盖草稿）
+        appState.editor.data = ensureEditorDataShape(vs.fileData);
+        appState.editor.toggles = buildToggleStateFromData(vs.fileData);
+        appState.editor.colorToggles = buildColorToggleStateFromData(vs.fileData);
+        appState.navData = buildConfigFromEditorState();
+        if (vs.fileData) {
+            const standardKeys = ['siteName', 'footerName', 'siteDescription', 'siteKeywords', 'logo', 'background', 'theme', 'iconfont', 'fontawesome', 'webAppIcons', 'navLinks', 'categories', 'cover'];
+            Object.keys(vs.fileData).forEach(key => {
+                if (!standardKeys.includes(key)) {
+                    appState.navData[key] = vs.fileData[key];
+                }
+            });
+        }
+    }
+
+    await refreshUiFromNavData();
+    renderVersionSwitchState();
+    showToast(source === 'file' ? '已切换到服务器最新版' : '已切换到本地草稿版', 1800, '#00bd06');
+}
+
+// 绑定版本切换开关事件（在 DOMContentLoaded 时调用）
+function initVersionSwitchEvents() {
+    const toggle = document.getElementById('versionSwitch');
+    if (!toggle) return;
+    const input = toggle.querySelector('.version-switch-input');
+    if (!input) return;
+
+    input.addEventListener('change', () => {
+        const next = input.checked ? 'file' : 'draft';
+        switchToVersion(next);
+    });
+}
+
 // 重新定义 loadData，支持编辑草稿恢复
 async function loadData() {
     const dataSources = ['momo-nav.json', 'example.json'];
@@ -3953,6 +4117,9 @@ async function loadData() {
         const usedDraft = applyEditorDraftState(fileData);
         appState.navData = buildConfigFromEditorState();
 
+        // --- 版本切换初始化：记录服务器原始数据与时间戳，并尝试显示开关 ---
+        initVersionSwitch(fileData);
+
         // --- 核心修复：自动识别并保留所有非标准扩展字段 (如 customFeatures, toolbox 等) ---
         appState.extraData = {};
         const standardKeys = ['siteName', 'footerName', 'siteDescription', 'siteKeywords', 'logo', 'background', 'theme', 'iconfont', 'fontawesome', 'webAppIcons', 'navLinks', 'categories', 'cover'];
@@ -3974,6 +4141,7 @@ async function loadData() {
 
         await refreshUiFromNavData();
         syncEditorFormFromState();
+        renderVersionSwitchState();
     } catch (error) {
         console.error('加载导航数据失败:', error);
         const container = document.getElementById('navContent');

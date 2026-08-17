@@ -1,0 +1,12 @@
+{
+  "name": "momo-nav",
+  "version": "2026.08.17",
+  "private": true,
+  "description": "默默导航核心引擎——一个简洁美观的静态导航网站，通过 JSON 文件管理链接。",
+  "scripts": {
+    "sync": "node scripts/sync.js",
+    "data": "node scripts/data.js",
+    "version": "node scripts/version.js"
+  },
+  "license": "MIT"
+}
