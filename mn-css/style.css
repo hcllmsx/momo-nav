@@ -275,6 +275,9 @@ body {
 /* 版本切换开关（本地草稿 ↔ 服务器最新） */
 /* ========================= */
 .version-switch {
+    position: relative; /* popover 锚点 */
+    z-index: 60; /* 提升层级：will-change: transform 会创建 stacking context，
+                    若无 z-index 则整个开关（含 popover）会被搜索栏等后续元素遮挡 */
     margin-left: 10px;
     display: none;
     align-items: center;
@@ -339,7 +342,7 @@ body {
     width: 36px;
     height: 20px;
     border-radius: 999px;
-    background: rgba(var(--text-color, 51, 51, 51), 0.18);
+    background: rgba(var(--primary-rgb, 255, 122, 26), 0.30); /* 本地草稿：主题色浅版，避免与按钮背景融为一体 */
     flex-shrink: 0;
     transition: background 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -367,34 +370,106 @@ body {
     transform: translateX(16px);
 }
 
-/* 文本区 */
-.version-switch-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    line-height: 1.1;
-}
-
+/* 短标签：默认只显示"本地 / 云端" */
 .version-switch-label {
     font-weight: 600;
     font-size: 0.78rem;
     color: var(--text-color);
     letter-spacing: 0.01em; /* 小字号略加 tracking 提升可读性 */
+    white-space: nowrap;
 }
 
-.version-switch-hint {
-    font-size: 0.66rem;
-    color: var(--text-muted);
+/* 悬停详情（popover）：完整信息 + 当前来源高亮 */
+.version-switch-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px) scale(0.96);
+    transform-origin: top center; /* 从开关底部锚定生长 */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 200px;
+    padding: 6px;
+    border-radius: 12px;
+    background: rgba(var(--card-bg-rgb, 255, 255, 255), 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(var(--text-color, 51, 51, 51), 0.1);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.16s;
+    z-index: 60;
+}
+
+/* 悬停 / 键盘聚焦时展示完整信息 */
+.version-switch:hover .version-switch-popover,
+.version-switch:focus-within .version-switch-popover {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.version-switch:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.version-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
     white-space: nowrap;
-    letter-spacing: 0.01em;
+    color: var(--text-muted);
+}
+
+.version-switch-row.is-active {
+    background: rgba(var(--primary-rgb), 0.08);
+}
+
+.version-switch-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(var(--text-color, 51, 51, 51), 0.25);
+    flex-shrink: 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.version-switch-row.is-active .version-switch-dot {
+    background: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+}
+
+.version-switch-row-name {
+    font-weight: 600;
+    font-size: 0.76rem;
+    color: var(--text-color);
+}
+
+.version-switch-row.is-active .version-switch-row-name {
+    color: var(--primary-color);
+}
+
+.version-switch-row-time {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
 /* 降级动效：减少动效偏好下用纯透明度 cross-fade，去掉位移和 spring */
 @media (prefers-reduced-motion: reduce) {
     .version-switch,
     .version-switch-track,
-    .version-switch-thumb {
-        transition: background 0.2s ease, opacity 0.2s ease !important;
+    .version-switch-thumb,
+    .version-switch-popover,
+    .version-switch:hover .version-switch-popover,
+    .version-switch:focus-within .version-switch-popover {
+        transition: background 0.2s ease, opacity 0.16s ease !important;
+        transform: translateX(-50%) translateY(0) scale(1) !important;
     }
     .version-switch.is-visible {
         animation: version-switch-enter-reduced 0.2s ease both;
@@ -407,7 +482,8 @@ body {
 
 /* 降级透明度：不透明材质 */
 @media (prefers-reduced-transparency: reduce) {
-    .version-switch {
+    .version-switch,
+    .version-switch-popover {
         background: var(--card-bg);
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
@@ -432,8 +508,19 @@ body {
     .version-switch-input:checked + .version-switch-track .version-switch-thumb {
         transform: translateX(14px);
     }
-    .version-switch-hint {
-        display: none; /* 移动端空间紧张，隐藏日期细节 */
+}
+
+/* 触摸设备没有 hover：隐藏悬停详情，避免误触 */
+@media (hover: none) {
+    .version-switch-popover {
+        display: none;
+    }
+}
+
+/* 移动端/窄屏（<1024px）无法进入编辑模式产生草稿，版本切换开关无意义，隐藏兜底 */
+@media (max-width: 1023.98px) {
+    .version-switch.is-visible {
+        display: none !important;
     }
 }
 

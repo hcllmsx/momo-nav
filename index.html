@@ -31,6 +31,26 @@
         <div class="logo-corner" id="siteLogo">
             <span id="logoIcon">❤️</span>
             <span id="logoText">默默导航</span>
+            <!-- 版本切换开关（本地草稿 ↔ 服务器最新），由 app.js 控制显隐 -->
+            <label class="version-switch" id="versionSwitch" role="switch" aria-hidden="true">
+                <input type="checkbox" class="version-switch-input">
+                <span class="version-switch-track">
+                    <span class="version-switch-thumb"></span>
+                </span>
+                <span class="version-switch-label"></span>
+                <span class="version-switch-popover" role="tooltip">
+                    <span class="version-switch-row" data-source="draft">
+                        <span class="version-switch-dot"></span>
+                        <span class="version-switch-row-name">本地草稿</span>
+                        <span class="version-switch-row-time"></span>
+                    </span>
+                    <span class="version-switch-row" data-source="file">
+                        <span class="version-switch-dot"></span>
+                        <span class="version-switch-row-name">云端最新</span>
+                        <span class="version-switch-row-time"></span>
+                    </span>
+                </span>
+            </label>
         </div>
 
         <!-- 右上角链接菜单 -->

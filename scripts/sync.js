@@ -124,7 +124,9 @@ function updateVersions(layout) {
     const timestamp = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, '0')}${String(now.getUTCDate()).padStart(2, '0')}_${String(now.getUTCHours()).padStart(2, '0')}${String(now.getUTCMinutes()).padStart(2, '0')}`;
 
     updateIndexVersion(rootDir, dataVersion, timestamp);
-    updatePackageJson(rootDir, packageVersion);
+    // package.json 的 version 字段已固定为数据仓首发版本 2026.4.10（仅纪念，无功能作用），
+    // 不再随 sync 自动更新为当天日期。
+    // updatePackageJson(rootDir, packageVersion);
 
     // 读取核心版本号（来自 VERSION 文件），写入根目录 app.js 的 APP_VERSION
     const coreVersion = readCoreVersion(coreDir);
@@ -172,8 +174,14 @@ function updatePackageJson(rootDir, version) {
     const pkgPath = path.join(rootDir, 'package.json');
     if (!fs.existsSync(pkgPath)) return;
 
-    console.log('🔄 正在更新 package.json 版本号...');
     let content = fs.readFileSync(pkgPath, 'utf8');
+    const match = content.match(/"version":\s*"([^"]*)"/);
+    if (match && match[1] === version) {
+        console.log(`ℹ️  package.json 版本号已是 ${version}，跳过写入。`);
+        return;
+    }
+
+    console.log('🔄 正在更新 package.json 版本号...');
     content = content.replace(/"version":\s*"[^"]*"/, `"version": "${version}"`);
     fs.writeFileSync(pkgPath, content, 'utf8');
     console.log(`✅ package.json 版本号已更新为: ${version}`);

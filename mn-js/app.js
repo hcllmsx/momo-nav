@@ -3948,6 +3948,7 @@ function parseTimestamp(value) {
 function shouldShowVersionSwitch() {
     const vs = appState.versionSwitch;
     if (!vs) return false;
+    if (!isDesktopEditorViewport()) return false; // 手机端无法 Ctrl+F9 产生草稿，不显示开关
     if (!vs.fileData) return false;
     if (!vs.draftUpdatedAt) return false; // 没有草稿就不显示
     // 服务器时间戳必须大于草稿时间戳
@@ -3974,8 +3975,11 @@ function initVersionSwitch(fileData) {
     }
 
     // 读取用户上次的选择（仅当存在切换需求时才生效）
+    // 手机端无法通过 Ctrl+F9 进入编辑模式产生草稿，永远使用服务器最新数据
     const saved = localStorage.getItem(VERSION_SWITCH_KEY);
-    if (saved === 'file' && shouldShowVersionSwitch()) {
+    if (!isDesktopEditorViewport()) {
+        vs.activeSource = 'file';
+    } else if (saved === 'file' && shouldShowVersionSwitch()) {
         vs.activeSource = 'file';
     } else {
         vs.activeSource = 'draft';
@@ -4010,23 +4014,26 @@ function renderVersionSwitchState() {
         input.checked = (vs.activeSource === 'file');
     }
 
-    // 更新标签文案
+    // 更新标签文案：默认只显示短词，悬停时展示完整信息
     const labelEl = toggle.querySelector('.version-switch-label');
     if (labelEl) {
-        labelEl.textContent = vs.activeSource === 'file' ? '服务器版' : '本地版';
+        labelEl.textContent = vs.activeSource === 'file' ? '云端' : '本地';
     }
 
-    // 日期提示
-    const hintEl = toggle.querySelector('.version-switch-hint');
-    if (hintEl) {
-        const fileTime = vs.fileUpdatedAt ? new Date(parseTimestamp(vs.fileUpdatedAt)) : null;
-        const draftTime = vs.draftUpdatedAt ? new Date(parseTimestamp(vs.draftUpdatedAt)) : null;
-        const fmt = (d) => d
-            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-            : '—';
-        hintEl.textContent = `本地 ${fmt(draftTime)} · 服务器 ${fmt(fileTime)}`;
-        hintEl.title = `本地草稿更新时间：${vs.draftUpdatedAt || '—'}\n服务器更新时间：${vs.fileUpdatedAt || '—'}`;
-    }
+    // 悬停详情（popover）：列出本地草稿 / 云端最新两条，当前来源高亮
+    const fmt = (d) => d
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+        : '—';
+    const rows = toggle.querySelectorAll('.version-switch-row');
+    rows.forEach((row) => {
+        const source = row.getAttribute('data-source');
+        row.classList.toggle('is-active', vs.activeSource === source);
+        const timeEl = row.querySelector('.version-switch-row-time');
+        if (timeEl) {
+            const raw = source === 'file' ? vs.fileUpdatedAt : vs.draftUpdatedAt;
+            timeEl.textContent = fmt(raw ? new Date(parseTimestamp(raw)) : null);
+        }
+    });
 }
 
 // 切换到指定来源（'draft' 或 'file'），并重渲染 UI
@@ -4114,11 +4121,22 @@ async function loadData() {
             throw lastError || new Error('未找到可用的导航数据文件');
         }
 
-        const usedDraft = applyEditorDraftState(fileData);
-        appState.navData = buildConfigFromEditorState();
-
-        // --- 版本切换初始化：记录服务器原始数据与时间戳，并尝试显示开关 ---
+        // --- 版本切换初始化：记录服务器原始数据与时间戳，确定数据来源 ---
         initVersionSwitch(fileData);
+
+        // 根据版本切换的选择决定加载哪份数据：
+        // - activeSource === 'draft'：本地草稿优先（若存在）
+        // - activeSource === 'file'：直接用服务器最新版（不覆盖草稿）
+        const wantDraft = appState.versionSwitch.activeSource === 'draft';
+        let usedDraft = false;
+        if (wantDraft) {
+            usedDraft = applyEditorDraftState(fileData);
+        } else {
+            appState.editor.data = ensureEditorDataShape(fileData);
+            appState.editor.toggles = buildToggleStateFromData(fileData);
+            appState.editor.colorToggles = buildColorToggleStateFromData(fileData);
+        }
+        appState.navData = buildConfigFromEditorState();
 
         // --- 核心修复：自动识别并保留所有非标准扩展字段 (如 customFeatures, toolbox 等) ---
         appState.extraData = {};
