@@ -1807,6 +1807,121 @@ body.desktop-sidebar-fixed .category-sidebar {
 }
 
 /* =========================
+   新访客提示（Ctrl + F9 可编辑条目）
+   ========================= */
+/* 仅在桌面端显示：窄屏无法使用 Ctrl+F9 进入编辑模式 */
+.edit-tip {
+    position: fixed;
+    top: 66px;
+    right: 20px;
+    /* 低于 .header-nav(10)：右上角菜单展开二级下拉时不被提示条遮挡 */
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: min(340px, calc(100vw - 40px));
+    padding: 10px 10px 10px 14px;
+    border-radius: 14px;
+    background: rgba(var(--card-bg-rgb, 255, 255, 255), 0.84);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(var(--primary-rgb, 74, 144, 217), 0.28);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    color: var(--text-color);
+    font-size: 0.84rem;
+    line-height: 1.4;
+    /* 入场/退场：淡入淡出 + 从锚点（右上角）轻微生长，避免无意义的位移 */
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    transform-origin: top right;
+    transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.edit-tip[hidden] {
+    display: none;
+}
+
+.edit-tip.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.edit-tip-text {
+    white-space: nowrap;
+}
+
+.edit-tip-key {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(var(--primary-rgb, 74, 144, 217), 0.12);
+    border: 1px solid rgba(var(--primary-rgb, 74, 144, 217), 0.22);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.edit-tip-close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(120, 130, 140, 0.12);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease-out;
+}
+
+/* 叉号用 SVG 绘制：不受各平台字体度量影响，始终视觉居中 */
+.edit-tip-close-icon {
+    display: block;
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
+
+.edit-tip-close:hover {
+    background: rgba(var(--primary-rgb, 74, 144, 217), 0.16);
+    color: var(--primary-color);
+}
+
+.edit-tip-close:active {
+    transform: scale(0.94);
+}
+
+.edit-tip-close:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (max-width: 1023.98px) {
+    .edit-tip {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .edit-tip {
+        transition: opacity 0.01ms linear;
+        transform: none;
+    }
+
+    .edit-tip.is-visible {
+        transform: none;
+    }
+}
+
+/* =========================
    编辑模式（Ctrl + F9）
    ========================= */
 /* 顶部入口按钮已移除：Ctrl+F9 直接进入编辑模式。保留样式仅作历史兼容，不渲染。 */

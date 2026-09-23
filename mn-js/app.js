@@ -101,6 +101,9 @@ function wrapInputWithFixBtn(input) {
 // 为 escapeHtml 创建一个全局复用元素
 const escapeContainer = document.createElement('div');
 
+// 新访客提示（Ctrl + F9 可编辑条目）的关闭标记
+const EDIT_TIP_DISMISSED_KEY = 'momoNavEditTipDismissedV1';
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     // 设置页脚年份为当前年份
@@ -111,9 +114,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initPageScrollbarReveal();
     initResponsiveCategoryStickyFallback();
+    initEditTip();
     loadData();
     setupSearch();
 });
+
+// =========================
+// 新访客提示：按 Ctrl + F9 可编辑条目
+// 不自动关闭，仅点击关闭按钮消失，并在本机记住（换隐私模式/新设备会再次出现）
+// =========================
+function initEditTip() {
+    const tip = document.getElementById('editTip');
+    if (!tip) return;
+
+    let dismissed = false;
+    try {
+        dismissed = localStorage.getItem(EDIT_TIP_DISMISSED_KEY) === '1';
+    } catch (error) {
+        // 隐私模式或存储被禁用：读取失败按“未关闭”处理，提示依旧显示
+        console.warn('读取提示状态失败，将照常显示提示：', error);
+    }
+
+    if (dismissed) {
+        tip.remove();
+        return;
+    }
+
+    const closeBtn = document.getElementById('editTipClose');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeEditTip(tip));
+    }
+
+    tip.hidden = false;
+    requestAnimationFrame(() => tip.classList.add('is-visible'));
+}
+
+function closeEditTip(tip) {
+    try {
+        localStorage.setItem(EDIT_TIP_DISMISSED_KEY, '1');
+    } catch (error) {
+        console.warn('保存提示状态失败，下次访问仍会显示提示：', error);
+    }
+
+    tip.classList.remove('is-visible');
+
+    const remove = () => tip.remove();
+    tip.addEventListener('transitionend', remove, { once: true });
+    // 兜底：过渡被中断或未触发时也要移除，避免残留可点击区域
+    setTimeout(remove, 400);
+}
 
 function initPageScrollbarReveal() {
     const root = document.documentElement;
